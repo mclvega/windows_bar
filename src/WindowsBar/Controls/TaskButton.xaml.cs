@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
+using System.Diagnostics;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -237,6 +238,72 @@ namespace WindowsBar.Controls
                 };
                 close.Click += (_, _) => windows.ForEach(w => w.Close());
                 Menu.Items.Add(close);
+
+                var processIds = KillableProcessIds();
+                var endTask = new MenuItem
+                {
+                    Header = "Finalizar tarea",
+                    Icon = Glyph(""),
+                    IsEnabled = processIds.Count > 0
+                };
+                endTask.Click += (_, _) => EndTask(processIds);
+                Menu.Items.Add(endTask);
+            }
+        }
+
+        // Procesos que nunca se finalizan desde la barra: el shell (todas las carpetas y el escritorio)
+        // y el anfitrión de apps UWP (aloja varias apps a la vez).
+        private static readonly HashSet<string> ProtectedProcesses = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "explorer", "ApplicationFrameHost", "WindowsBar"
+        };
+
+        /// <summary>Procesos distintos de las ventanas reales del grupo que se pueden finalizar.</summary>
+        private List<int> KillableProcessIds()
+        {
+            var ids = new List<int>();
+            foreach (var w in _group.Windows.Where(IsRealWindow))
+            {
+                uint? pid = null;
+                try { pid = w.ProcId; } catch { }
+                if (pid is null or 0 || ids.Contains((int)pid.Value)) continue;
+
+                try
+                {
+                    using var p = Process.GetProcessById((int)pid.Value);
+                    if (!ProtectedProcesses.Contains(p.ProcessName)) ids.Add(p.Id);
+                }
+                catch
+                {
+                    // El proceso ya terminó.
+                }
+            }
+            return ids;
+        }
+
+        /// <summary>Finaliza los procesos a la fuerza, como "Finalizar tarea" de Windows.</summary>
+        private void EndTask(List<int> processIds)
+        {
+            string appName = _group?.Name ?? "la aplicación";
+            foreach (int id in processIds)
+            {
+                try
+                {
+                    using var p = Process.GetProcessById(id);
+                    string name = p.ProcessName;
+                    p.Kill();
+                    DiagLog.Write($"[Finalizar tarea] '{appName}' → proceso {name} ({id}) finalizado");
+                }
+                catch (ArgumentException)
+                {
+                    // Ya no existe: nada que hacer.
+                }
+                catch (Exception ex)
+                {
+                    DiagLog.Write($"[Finalizar tarea] '{appName}' → ERROR con el proceso {id}: {ex.Message}");
+                    MessageBox.Show($"No se pudo finalizar {appName}.\n\nPuede que se esté ejecutando como administrador.",
+                        "Finalizar tarea", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
             }
         }
 
