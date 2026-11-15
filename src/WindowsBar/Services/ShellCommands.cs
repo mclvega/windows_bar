@@ -51,6 +51,7 @@ namespace WindowsBar.Services
         {
             try
             {
+                GrantForegroundToLaunchedApps();
                 Process.Start(new ProcessStartInfo(target, args) { UseShellExecute = true });
             }
             catch (Exception ex)
@@ -88,6 +89,18 @@ namespace WindowsBar.Services
         };
 
         private static void HotkeyOnMonitor(TaskbarWindow host, ushort modifier, char key) => HotkeyOnMonitor(host, modifier, (ushort)key);
+
+        /// <summary>
+        /// Permite que la app que vamos a abrir pase a primer plano. Sin esto, Windows la abre detrás
+        /// y la marca "pidiendo atención" (botón naranja). Para poder ceder el foco, nuestro proceso
+        /// debe haber recibido la última entrada: enviamos una tecla sin uso (0xE8) y luego cedemos.
+        /// </summary>
+        private static void GrantForegroundToLaunchedApps()
+        {
+            const ushort VK_UNASSIGNED = 0xE8;
+            SendCombo(VK_UNASSIGNED);
+            NativeMethods.AllowSetForegroundWindow(NativeMethods.ASFW_ANY);
+        }
 
         private static void SendCombo(params ushort[] keys)
         {

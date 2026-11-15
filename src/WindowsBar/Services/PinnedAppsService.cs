@@ -114,8 +114,44 @@ namespace WindowsBar.Services
             if (pinHasAumid && windowHasAumid)
                 return string.Equals(pin.Aumid, windowAumid, StringComparison.OrdinalIgnoreCase);
 
-            return !string.IsNullOrEmpty(pin.TargetPath) && !string.IsNullOrEmpty(windowPath)
-                   && string.Equals(Path.GetFullPath(pin.TargetPath), Path.GetFullPath(windowPath), StringComparison.OrdinalIgnoreCase);
+            if (string.IsNullOrEmpty(windowPath)) return false;
+
+            // Explorador de archivos: su anclado apunta a una ubicación del shell, no a un .exe.
+            if (string.Equals(pin.Aumid, ExplorerAumid, StringComparison.OrdinalIgnoreCase))
+                return string.Equals(Path.GetFileName(windowPath), "explorer.exe", StringComparison.OrdinalIgnoreCase);
+
+            return !string.IsNullOrEmpty(pin.TargetPath) && SameApp(pin.TargetPath, windowPath);
+        }
+
+        private const string ExplorerAumid = "Microsoft.Windows.Explorer";
+
+        /// <summary>
+        /// Mismo ejecutable, o instalación tipo Squirrel (GitHub Desktop, Postman, Discord...): el acceso
+        /// directo apunta a "App\App.exe" y la ventana es de "App\app-1.2.3\App.exe".
+        /// </summary>
+        private static bool SameApp(string pinTarget, string windowPath)
+        {
+            string pinFull, winFull;
+            try
+            {
+                pinFull = Path.GetFullPath(pinTarget);
+                winFull = Path.GetFullPath(windowPath);
+            }
+            catch
+            {
+                return false;
+            }
+
+            if (string.Equals(pinFull, winFull, StringComparison.OrdinalIgnoreCase)) return true;
+
+            if (!string.Equals(Path.GetFileName(pinFull), Path.GetFileName(winFull), StringComparison.OrdinalIgnoreCase))
+                return false;
+
+            string pinDir = Path.GetDirectoryName(pinFull);
+            string winDir = Path.GetDirectoryName(winFull);
+            return pinDir != null && winDir != null
+                   && string.Equals(Path.GetDirectoryName(winDir), pinDir, StringComparison.OrdinalIgnoreCase)
+                   && Path.GetFileName(winDir).StartsWith("app-", StringComparison.OrdinalIgnoreCase);
         }
 
         public void Pin(ApplicationWindow window)

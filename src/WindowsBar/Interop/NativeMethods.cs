@@ -29,6 +29,11 @@ namespace WindowsBar.Interop
         public static extern bool SetForegroundWindow(IntPtr hWnd);
 
         [DllImport("user32.dll")]
+        public static extern bool AllowSetForegroundWindow(uint processId);
+
+        public const uint ASFW_ANY = unchecked((uint)-1);
+
+        [DllImport("user32.dll")]
         public static extern bool IsWindow(IntPtr hWnd);
 
         [DllImport("user32.dll")]
