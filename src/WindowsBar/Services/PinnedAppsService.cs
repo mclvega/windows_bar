@@ -96,6 +96,13 @@ namespace WindowsBar.Services
             Commit();
         }
 
+        /// <summary>Sustituye las ancladas por las de la barra de Windows.</summary>
+        public void ReimportFromWindows()
+        {
+            _settings.Data.PinnedApps = ImportFromWindows();
+            Commit();
+        }
+
         public static string GetAppName(ApplicationWindow window)
         {
             string description = SafeGet(() => window.WinFileDescription);

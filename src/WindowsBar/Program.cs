@@ -25,6 +25,17 @@ namespace WindowsBar
                 return 0;
             }
 
+            // "WindowsBar.exe --exit" pide a la instancia en marcha que se cierre limpiamente.
+            if (args.Any(a => a.Equals("--exit", StringComparison.OrdinalIgnoreCase)))
+            {
+                if (EventWaitHandle.TryOpenExisting(App.ExitSignalName, out var signal))
+                {
+                    signal.Set();
+                    signal.Dispose();
+                }
+                return 0;
+            }
+
             _mutex = new Mutex(true, MutexName, out bool createdNew);
             if (!createdNew)
             {

@@ -4,7 +4,7 @@
                      xmlns:appbar="clr-namespace:ManagedShell.AppBar;assembly=ManagedShell.AppBar"
                      xmlns:controls="clr-namespace:WindowsBar.Controls"
                      Title="WindowsBar"
-                     Background="{StaticResource BarBackground}"
+                     Background="Transparent"
                      FontFamily="{StaticResource TextFont}">
 
     <Window.ContextMenu>
@@ -13,24 +13,30 @@
             <Separator />
             <MenuItem x:Name="AllTaskbarsMenuItem" Header="Mostrar ventanas de todos los monitores"
                       IsCheckable="True" Click="AllTaskbars_Click" />
-            <MenuItem Header="Configuración de la barra de tareas" Click="TaskbarSettings_Click" />
+            <MenuItem Header="Configuración de WindowsBar" Click="WindowsBarSettings_Click" />
+            <MenuItem Header="Configuración de la barra de tareas de Windows" Click="TaskbarSettings_Click" />
             <Separator />
             <MenuItem Header="Salir de WindowsBar" Click="Exit_Click" />
         </ContextMenu>
     </Window.ContextMenu>
 
-    <Border BorderBrush="{StaticResource BarBorder}" BorderThickness="0,1,0,0">
-        <controls:CenteringPanel>
+    <!-- Fondo en el borde raíz: con "ocultar automáticamente" este borde es el que se desliza -->
+    <Border x:Name="RootBorder" Background="{StaticResource BarBackground}"
+            BorderBrush="{StaticResource BarBorder}" BorderThickness="0,1,0,0">
+        <Border.RenderTransform>
+            <TranslateTransform />
+        </Border.RenderTransform>
+        <controls:CenteringPanel x:Name="Layout">
             <!-- Izquierda: Widgets -->
             <StackPanel Orientation="Horizontal" Margin="6,0,0,0">
-                <controls:WidgetsButton />
+                <controls:WidgetsButton x:Name="WidgetsButton" />
             </StackPanel>
 
             <!-- Centro: Inicio, Búsqueda, Vista de tareas y apps -->
             <StackPanel Orientation="Horizontal">
                 <controls:StartButton />
-                <controls:SearchButton />
-                <controls:TaskViewButton />
+                <controls:SearchButton x:Name="SearchButton" />
+                <controls:TaskViewButton x:Name="TaskViewButton" />
                 <controls:TaskList x:Name="TaskList" />
             </StackPanel>
 
@@ -39,7 +45,7 @@
                 <controls:TrayArea x:Name="TrayArea" />
                 <controls:SystemIcons />
                 <controls:Clock />
-                <controls:ShowDesktopButton />
+                <controls:ShowDesktopButton x:Name="ShowDesktopButton" />
             </StackPanel>
         </controls:CenteringPanel>
     </Border>

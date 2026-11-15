@@ -7,7 +7,8 @@ using WindowsBar.Views;
 namespace WindowsBar.Services
 {
     /// <summary>
-    /// Crea una barra por monitor y las recrea cuando cambia la configuración de pantallas.
+    /// Crea una barra por monitor (o solo en el principal) y las recrea cuando cambian
+    /// las pantallas, los ajustes que lo requieren o Explorer se reinicia.
     /// </summary>
     public class WindowManager : IDisposable
     {
@@ -16,6 +17,10 @@ namespace WindowsBar.Services
         private List<AppBarScreen> _screens = new();
         private bool _isSettingDisplays;
         private int _pendingDisplayEvents;
+
+        // Ajustes con los que se abrieron las barras: si cambian hay que reabrirlas.
+        private bool _openedAllMonitors;
+        private bool _openedAutoHide;
 
         public WindowManager(AppServices services)
         {
@@ -28,9 +33,17 @@ namespace WindowsBar.Services
         {
             _services.ShellManager.ExplorerHelper.HideExplorerTaskbar = true;
             OpenTaskbars();
+            _services.Settings.Changed += Settings_Changed;
         }
 
-        public bool IsKnownMonitor(IntPtr hMonitor) => _screens.Any(s => s.HMonitor == hMonitor);
+        public bool HasTaskbarOn(IntPtr hMonitor) => _taskbars.Any(t => t.Screen.HMonitor == hMonitor);
+
+        private void Settings_Changed(object sender, EventArgs e)
+        {
+            var s = _services.Settings.Data;
+            if (s.ShowOnAllMonitors != _openedAllMonitors || s.AutoHide != _openedAutoHide)
+                ReopenTaskbars();
+        }
 
         public void NotifyDisplayChange()
         {
@@ -46,6 +59,15 @@ namespace WindowsBar.Services
             _isSettingDisplays = false;
         }
 
+        /// <summary>Explorer se reinició: su barra vuelve a aparecer y hay que ocultarla de nuevo.</summary>
+        public void HandleExplorerRestart()
+        {
+            var explorer = _services.ShellManager.ExplorerHelper;
+            explorer.HideExplorerTaskbar = false;
+            explorer.HideExplorerTaskbar = true;
+            ReopenTaskbars();
+        }
+
         public void ReopenTaskbars()
         {
             CloseTaskbars();
@@ -54,10 +76,17 @@ namespace WindowsBar.Services
 
         private void OpenTaskbars()
         {
+            var s = _services.Settings.Data;
+            _openedAllMonitors = s.ShowOnAllMonitors;
+            _openedAutoHide = s.AutoHide;
+
             _screens = AppBarScreen.FromAllScreens();
-            foreach (var screen in _screens)
+            var targets = s.ShowOnAllMonitors ? _screens : _screens.Where(x => x.Primary).ToList();
+            var mode = s.AutoHide ? AppBarMode.AutoHide : AppBarMode.Normal;
+
+            foreach (var screen in targets)
             {
-                var bar = new TaskbarWindow(_services, screen);
+                var bar = new TaskbarWindow(_services, screen, mode);
                 bar.Show();
                 _taskbars.Add(bar);
             }
@@ -100,6 +129,7 @@ namespace WindowsBar.Services
 
         public void Dispose()
         {
+            _services.Settings.Changed -= Settings_Changed;
             CloseTaskbars();
             _services.ShellManager.ExplorerHelper.HideExplorerTaskbar = false;
         }

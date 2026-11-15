@@ -167,4 +167,134 @@
 
     <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
 
+    <!-- ================= Ventana de configuración ================= -->
+    <SolidColorBrush x:Key="WindowBackground" Color="#FF202020" />
+    <SolidColorBrush x:Key="CardBackground" Color="#FF2B2B2B" />
+    <SolidColorBrush x:Key="CardBorder" Color="#FF1D1D1D" />
+    <SolidColorBrush x:Key="ToggleOff" Color="#FFCFCFCF" />
+
+    <!-- Interruptor estilo Windows 11 sobre CheckBox -->
+    <Style x:Key="ToggleSwitch" TargetType="CheckBox">
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="CheckBox">
+                    <Border x:Name="Track" Width="40" Height="20" CornerRadius="10" BorderThickness="1"
+                            BorderBrush="{StaticResource ToggleOff}" Background="Transparent">
+                        <Ellipse x:Name="Knob" Width="12" Height="12" Fill="{StaticResource ToggleOff}"
+                                 HorizontalAlignment="Left" Margin="4,0" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Track" Property="Background" Value="{StaticResource Accent}" />
+                            <Setter TargetName="Track" Property="BorderBrush" Value="{StaticResource Accent}" />
+                            <Setter TargetName="Knob" Property="Fill" Value="#FF000000" />
+                            <Setter TargetName="Knob" Property="HorizontalAlignment" Value="Right" />
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Knob" Property="Width" Value="14" />
+                            <Setter TargetName="Knob" Property="Height" Value="14" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.4" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Tarjeta de ajuste (fila) -->
+    <Style x:Key="SettingCard" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource CardBackground}" />
+        <Setter Property="BorderBrush" Value="{StaticResource CardBorder}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="Padding" Value="16,12" />
+        <Setter Property="Margin" Value="0,0,0,4" />
+        <Setter Property="MinHeight" Value="64" />
+    </Style>
+
+    <Style x:Key="SettingTitle" TargetType="TextBlock" BasedOn="{StaticResource BarText}">
+        <Setter Property="FontSize" Value="14" />
+    </Style>
+
+    <Style x:Key="SettingSubtitle" TargetType="TextBlock" BasedOn="{StaticResource BarText}">
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Foreground" Value="{StaticResource ForegroundSecondary}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="Margin" Value="0,2,0,0" />
+    </Style>
+
+    <Style x:Key="SectionTitle" TargetType="TextBlock" BasedOn="{StaticResource BarText}">
+        <Setter Property="FontSize" Value="28" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Margin" Value="0,0,0,20" />
+    </Style>
+
+    <!-- Botón de acción (Restablecer, Importar...) -->
+    <Style x:Key="ActionButton" TargetType="Button">
+        <Setter Property="Foreground" Value="{StaticResource Foreground}" />
+        <Setter Property="FontFamily" Value="{StaticResource TextFont}" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Padding" Value="14,6" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Bd" Background="#FF373737" BorderBrush="#FF444444" BorderThickness="1"
+                            CornerRadius="4" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="#FF3F3F3F" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="#FF323232" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Elemento de navegación lateral -->
+    <Style x:Key="NavItem" TargetType="RadioButton">
+        <Setter Property="Foreground" Value="{StaticResource Foreground}" />
+        <Setter Property="FontFamily" Value="{StaticResource TextFont}" />
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Margin" Value="0,1" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RadioButton">
+                    <Border x:Name="Bd" Background="Transparent" CornerRadius="4" Height="38">
+                        <Grid>
+                            <Border x:Name="Marker" Width="3" Height="16" CornerRadius="1.5" HorizontalAlignment="Left"
+                                    Background="{StaticResource Accent}" Visibility="Hidden" />
+                            <StackPanel Orientation="Horizontal" Margin="14,0,0,0" VerticalAlignment="Center">
+                                <TextBlock Style="{StaticResource Glyph}" Text="{TemplateBinding Tag}" Margin="0,0,14,0" />
+                                <ContentPresenter VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource HoverBackground}" />
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource ActiveBackground}" />
+                            <Setter TargetName="Marker" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
 </ResourceDictionary>

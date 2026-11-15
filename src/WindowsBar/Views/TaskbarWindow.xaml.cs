@@ -12,22 +12,31 @@ namespace WindowsBar.Views
     /// <summary>Barra de tareas de un monitor.</summary>
     public partial class TaskbarWindow : AppBarWindow
     {
+        private static readonly int TaskbarCreatedMessage = (int)NativeMethods.RegisterWindowMessage("TaskbarCreated");
+
         private readonly AppServices _services;
 
         public TaskGroupCollection TaskGroups { get; }
 
-        public TaskbarWindow(AppServices services, AppBarScreen screen)
+        public TaskbarWindow(AppServices services, AppBarScreen screen, AppBarMode mode)
             : base(services.ShellManager.AppBarManager, services.ShellManager.ExplorerHelper,
-                   services.ShellManager.FullScreenHelper, screen, AppBarEdge.Bottom, AppBarMode.Normal,
+                   services.ShellManager.FullScreenHelper, screen, AppBarEdge.Bottom, mode,
                    (double)Application.Current.FindResource("TaskbarHeight"))
         {
             _services = services;
             InitializeComponent();
 
+            // Ocultar automáticamente necesita ventana transparente (solo se puede fijar antes de mostrarla).
+            AllowsTransparency = mode == AppBarMode.AutoHide;
+            AutoHideElement = RootBorder;
+
             TaskGroups = new TaskGroupCollection(services.ShellManager.Tasks, services.Pins, services.Settings,
                 ShowsWindowOnThisMonitor, Dispatcher);
             TaskList.Host = this;
             TaskList.ItemsSource = TaskGroups.Items;
+
+            ApplySettings();
+            services.Settings.Changed += Settings_Changed;
 
             if (Screen.Primary && services.ShellManager.NotificationArea != null)
             {
@@ -43,8 +52,21 @@ namespace WindowsBar.Views
             IntPtr hMonitor = window.HMonitor;
             if (hMonitor == Screen.HMonitor) return true;
 
-            // Ventanas en monitores desconocidos (recién desconectados...) van a la barra principal.
-            return Screen.Primary && !_services.WindowManager.IsKnownMonitor(hMonitor);
+            // Ventanas en monitores sin barra (desconectados o sin barra) van a la barra principal.
+            return Screen.Primary && !_services.WindowManager.HasTaskbarOn(hMonitor);
+        }
+
+        private void Settings_Changed(object sender, EventArgs e) => ApplySettings();
+
+        /// <summary>Aplica los ajustes de "Elementos de la barra" y la alineación.</summary>
+        private void ApplySettings()
+        {
+            var s = _services.Settings.Data;
+            WidgetsButton.Visibility = s.ShowWidgets ? Visibility.Visible : Visibility.Collapsed;
+            SearchButton.Visibility = s.ShowSearch ? Visibility.Visible : Visibility.Collapsed;
+            TaskViewButton.Visibility = s.ShowTaskView ? Visibility.Visible : Visibility.Collapsed;
+            ShowDesktopButton.Visibility = s.ShowDesktopButton ? Visibility.Visible : Visibility.Collapsed;
+            Layout.CenterMiddle = s.CenterTasks;
         }
 
         /// <summary>
@@ -76,6 +98,11 @@ namespace WindowsBar.Views
             {
                 _services.WindowManager.NotifyDisplayChange();
             }
+            else if (msg == TaskbarCreatedMessage && Screen.Primary)
+            {
+                // Explorer se reinició: vuelve a mostrar su barra; la ocultamos y reabrimos las nuestras.
+                Dispatcher.BeginInvoke(new Action(_services.WindowManager.HandleExplorerRestart));
+            }
 
             return IntPtr.Zero;
         }
@@ -97,6 +124,7 @@ namespace WindowsBar.Views
             if (!AllowClose) return;
 
             TaskGroups.Dispose();
+            _services.Settings.Changed -= Settings_Changed;
             if (_services.ShellManager.NotificationArea != null)
             {
                 _services.ShellManager.NotificationArea.NotificationBalloonShown -= NotificationArea_BalloonShown;
@@ -118,6 +146,8 @@ namespace WindowsBar.Views
         private void TaskManager_Click(object sender, RoutedEventArgs e) => ShellCommands.TaskManager();
 
         private void TaskbarSettings_Click(object sender, RoutedEventArgs e) => ShellCommands.TaskbarSettings();
+
+        private void WindowsBarSettings_Click(object sender, RoutedEventArgs e) => SettingsWindow.Open(this);
 
         private void AllTaskbars_Click(object sender, RoutedEventArgs e)
         {

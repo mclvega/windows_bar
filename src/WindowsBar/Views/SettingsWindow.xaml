@@ -1,0 +1,211 @@
+<Window x:Class="WindowsBar.Views.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Configuración de WindowsBar"
+        Width="900" Height="660" MinWidth="700" MinHeight="480"
+        WindowStartupLocation="Manual"
+        Background="{StaticResource WindowBackground}"
+        Foreground="{StaticResource Foreground}"
+        FontFamily="{StaticResource TextFont}">
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="260" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <!-- Navegación -->
+        <StackPanel Margin="12,16,12,12">
+            <TextBlock Style="{StaticResource BarText}" FontSize="14" FontWeight="SemiBold" Text="WindowsBar"
+                       Margin="12,0,0,18" />
+            <RadioButton x:Name="NavGeneral" Style="{StaticResource NavItem}" Tag="&#xE713;" Content="General"
+                         IsChecked="True" Checked="Nav_Checked" />
+            <RadioButton x:Name="NavItems" Style="{StaticResource NavItem}" Tag="&#xE90E;" Content="Elementos de la barra"
+                         Checked="Nav_Checked" />
+            <RadioButton x:Name="NavTray" Style="{StaticResource NavItem}" Tag="&#xE70E;" Content="Bandeja del sistema"
+                         Checked="Nav_Checked" />
+            <RadioButton x:Name="NavPins" Style="{StaticResource NavItem}" Tag="&#xE718;" Content="Apps ancladas"
+                         Checked="Nav_Checked" />
+        </StackPanel>
+
+        <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto" Padding="8,16,32,24">
+            <Grid>
+                <!-- ===== General ===== -->
+                <StackPanel x:Name="PageGeneral">
+                    <TextBlock Style="{StaticResource SectionTitle}" Text="General" />
+
+                    <Border Style="{StaticResource SettingCard}">
+                        <DockPanel>
+                            <CheckBox DockPanel.Dock="Right" Style="{StaticResource ToggleSwitch}" Tag="StartWithWindows" />
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Style="{StaticResource SettingTitle}" Text="Iniciar con Windows" />
+                                <TextBlock x:Name="StartupHint" Style="{StaticResource SettingSubtitle}"
+                                           Text="WindowsBar se abre al iniciar sesión y reemplaza la barra de Windows." />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource SettingCard}">
+                        <DockPanel>
+                            <CheckBox DockPanel.Dock="Right" Style="{StaticResource ToggleSwitch}" Tag="ShowOnAllMonitors" />
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Style="{StaticResource SettingTitle}" Text="Mostrar la barra en todos los monitores" />
+                                <TextBlock Style="{StaticResource SettingSubtitle}" Text="Si se desactiva, solo el monitor principal tendrá barra." />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource SettingCard}">
+                        <DockPanel>
+                            <CheckBox DockPanel.Dock="Right" Style="{StaticResource ToggleSwitch}" Tag="ShowTasksOnAllTaskbars" />
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Style="{StaticResource SettingTitle}" Text="Mostrar en cada barra las ventanas de todos los monitores" />
+                                <TextBlock Style="{StaticResource SettingSubtitle}" Text="Si se desactiva, cada barra muestra solo las ventanas abiertas en su monitor." />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource SettingCard}">
+                        <DockPanel>
+                            <CheckBox DockPanel.Dock="Right" Style="{StaticResource ToggleSwitch}" Tag="AutoHide" />
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Style="{StaticResource SettingTitle}" Text="Ocultar automáticamente la barra de tareas" />
+                                <TextBlock Style="{StaticResource SettingSubtitle}" Text="La barra aparece al llevar el ratón al borde inferior." />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource SettingCard}">
+                        <DockPanel>
+                            <CheckBox DockPanel.Dock="Right" Style="{StaticResource ToggleSwitch}" Tag="CenterTasks" />
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Style="{StaticResource SettingTitle}" Text="Centrar Inicio y las apps" />
+                                <TextBlock Style="{StaticResource SettingSubtitle}" Text="Si se desactiva, se alinean a la izquierda." />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                </StackPanel>
+
+                <!-- ===== Elementos de la barra ===== -->
+                <StackPanel x:Name="PageItems" Visibility="Collapsed">
+                    <TextBlock Style="{StaticResource SectionTitle}" Text="Elementos de la barra" />
+
+                    <Border Style="{StaticResource SettingCard}">
+                        <DockPanel>
+                            <CheckBox DockPanel.Dock="Right" Style="{StaticResource ToggleSwitch}" Tag="ShowWidgets" />
+                            <TextBlock Style="{StaticResource SettingTitle}" VerticalAlignment="Center" Text="Widgets" />
+                        </DockPanel>
+                    </Border>
+                    <Border Style="{StaticResource SettingCard}">
+                        <DockPanel>
+                            <CheckBox DockPanel.Dock="Right" Style="{StaticResource ToggleSwitch}" Tag="ShowSearch" />
+                            <TextBlock Style="{StaticResource SettingTitle}" VerticalAlignment="Center" Text="Búsqueda" />
+                        </DockPanel>
+                    </Border>
+                    <Border Style="{StaticResource SettingCard}">
+                        <DockPanel>
+                            <CheckBox DockPanel.Dock="Right" Style="{StaticResource ToggleSwitch}" Tag="ShowTaskView" />
+                            <TextBlock Style="{StaticResource SettingTitle}" VerticalAlignment="Center" Text="Vista de tareas" />
+                        </DockPanel>
+                    </Border>
+                    <Border Style="{StaticResource SettingCard}">
+                        <DockPanel>
+                            <CheckBox DockPanel.Dock="Right" Style="{StaticResource ToggleSwitch}" Tag="ShowInputLanguage" />
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Style="{StaticResource SettingTitle}" Text="Idioma de entrada (ESP, ENG...)" />
+                                <TextBlock Style="{StaticResource SettingSubtitle}" Text="Solo aparece si tienes más de un idioma o teclado instalado." />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                    <Border Style="{StaticResource SettingCard}">
+                        <DockPanel>
+                            <CheckBox DockPanel.Dock="Right" Style="{StaticResource ToggleSwitch}" Tag="ShowClockSeconds" />
+                            <TextBlock Style="{StaticResource SettingTitle}" VerticalAlignment="Center" Text="Mostrar los segundos en el reloj" />
+                        </DockPanel>
+                    </Border>
+                    <Border Style="{StaticResource SettingCard}">
+                        <DockPanel>
+                            <CheckBox DockPanel.Dock="Right" Style="{StaticResource ToggleSwitch}" Tag="ShowDesktopButton" />
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Style="{StaticResource SettingTitle}" Text="Botón Mostrar escritorio" />
+                                <TextBlock Style="{StaticResource SettingSubtitle}" Text="Franja en el extremo derecho de la barra." />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                </StackPanel>
+
+                <!-- ===== Bandeja del sistema ===== -->
+                <StackPanel x:Name="PageTray" Visibility="Collapsed">
+                    <TextBlock Style="{StaticResource SectionTitle}" Text="Bandeja del sistema" />
+                    <DockPanel Margin="0,0,0,12">
+                        <Button DockPanel.Dock="Right" Style="{StaticResource ActionButton}" Content="Restablecer como en Windows"
+                                Click="TrayReset_Click" />
+                        <TextBlock Style="{StaticResource SettingSubtitle}" VerticalAlignment="Center" Margin="0,0,16,0"
+                                   Text="Elige qué iconos se ven en la barra. Los demás quedan en el panel ^ de iconos ocultos." />
+                    </DockPanel>
+                    <TextBlock x:Name="TrayEmpty" Style="{StaticResource SettingSubtitle}" Visibility="Collapsed"
+                               Text="No hay iconos de bandeja en este momento." />
+                    <ItemsControl x:Name="TrayList" Focusable="False">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Style="{StaticResource SettingCard}" MinHeight="56">
+                                    <DockPanel>
+                                        <CheckBox DockPanel.Dock="Right" Style="{StaticResource ToggleSwitch}"
+                                                  IsChecked="{Binding Visible, Mode=OneWay}" Click="TrayToggle_Click" />
+                                        <Image Source="{Binding Icon}" Width="20" Height="20" Margin="0,0,14,0" VerticalAlignment="Center" />
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Style="{StaticResource SettingTitle}" Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Style="{StaticResource SettingSubtitle}" Text="{Binding Path}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                                        </StackPanel>
+                                    </DockPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+
+                <!-- ===== Apps ancladas ===== -->
+                <StackPanel x:Name="PagePins" Visibility="Collapsed">
+                    <TextBlock Style="{StaticResource SectionTitle}" Text="Apps ancladas" />
+                    <DockPanel Margin="0,0,0,12">
+                        <Button DockPanel.Dock="Right" Style="{StaticResource ActionButton}" Content="Volver a importar desde Windows"
+                                Click="PinsReimport_Click" />
+                        <TextBlock Style="{StaticResource SettingSubtitle}" VerticalAlignment="Center" Margin="0,0,16,0"
+                                   Text="Ordena o quita las apps ancladas. Para anclar una app, clic derecho sobre ella en la barra." />
+                    </DockPanel>
+                    <TextBlock x:Name="PinsEmpty" Style="{StaticResource SettingSubtitle}" Visibility="Collapsed"
+                               Text="No hay apps ancladas." />
+                    <ItemsControl x:Name="PinList" Focusable="False">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Style="{StaticResource SettingCard}" MinHeight="56">
+                                    <DockPanel>
+                                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                            <Button Style="{StaticResource BarButton}" Width="34" Height="32" ToolTip="Subir"
+                                                    Click="PinUp_Click" IsEnabled="{Binding CanMoveUp}">
+                                                <TextBlock Style="{StaticResource Glyph}" FontSize="14" Text="&#xE70E;" />
+                                            </Button>
+                                            <Button Style="{StaticResource BarButton}" Width="34" Height="32" ToolTip="Bajar"
+                                                    Click="PinDown_Click" IsEnabled="{Binding CanMoveDown}">
+                                                <TextBlock Style="{StaticResource Glyph}" FontSize="14" Text="&#xE70D;" />
+                                            </Button>
+                                            <Button Style="{StaticResource BarButton}" Width="34" Height="32" ToolTip="Desanclar"
+                                                    Click="PinRemove_Click">
+                                                <TextBlock Style="{StaticResource Glyph}" FontSize="14" Text="&#xE711;" />
+                                            </Button>
+                                        </StackPanel>
+                                        <Image Source="{Binding Icon}" Width="24" Height="24" Margin="0,0,14,0" VerticalAlignment="Center" />
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Style="{StaticResource SettingTitle}" Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Style="{StaticResource SettingSubtitle}" Text="{Binding Path}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                                        </StackPanel>
+                                    </DockPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Grid>
+        </ScrollViewer>
+    </Grid>
+</Window>

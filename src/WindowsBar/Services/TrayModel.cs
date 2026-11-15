@@ -73,6 +73,20 @@ namespace WindowsBar.Services
             Refresh();
         }
 
+        /// <summary>Todos los iconos gestionables (barra + desbordamiento), para la configuración.</summary>
+        public IReadOnlyList<NotifyIcon> All => Visible.Concat(Overflow).ToList();
+
+        public event EventHandler Changed;
+
+        /// <summary>Olvida las decisiones propias y vuelve a lo configurado en Windows.</summary>
+        public void ResetToWindows()
+        {
+            _settings.Data.TrayIconVisibility.Clear();
+            _settings.Save();
+            LoadPromotedFromWindows();
+            Refresh();
+        }
+
         private void OnTrayIconsChanged(object sender, NotifyCollectionChangedEventArgs e) => ScheduleRefresh();
 
         private void OnIconPropertyChanged(object sender, PropertyChangedEventArgs e)
@@ -109,6 +123,7 @@ namespace WindowsBar.Services
 
             Sync(Visible, shown.Where(IsVisibleInBar).ToList());
             Sync(Overflow, shown.Where(i => !IsVisibleInBar(i)).ToList());
+            Changed?.Invoke(this, EventArgs.Empty);
         }
 
         /// <summary>Actualiza la colección con movimientos mínimos para no recrear controles.</summary>

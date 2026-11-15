@@ -19,9 +19,15 @@ namespace WindowsBar.Services
 
         public static void StartMenu(TaskbarWindow host)
         {
-            if (host != null && ImmersiveLauncher.ShowStart(host.Screen.HMonitor)) return;
-            SendCombo(VK_LWIN);
+            var before = FlyoutPositioner.Snapshot();
+            bool viaLauncher = host != null && ImmersiveLauncher.ShowStart(host.Screen.HMonitor);
+            DiagLog.Write($"[Inicio] barra={Describe(host)} IImmersiveLauncher={(viaLauncher ? "OK" : "falló → tecla Win")}");
+            if (!viaLauncher) SendCombo(VK_LWIN);
+            FlyoutPositioner.EnsureOnMonitor(host, before, "Inicio");
         }
+
+        private static string Describe(TaskbarWindow host) =>
+            host == null ? "(ninguna)" : $"{host.Screen.DeviceName}{(host.Screen.Primary ? " (principal)" : "")} {host.Screen.Bounds}";
 
         public static void Search(TaskbarWindow host) => HotkeyOnMonitor(host, VK_LWIN, 'S');
         public static void TaskView(TaskbarWindow host) => HotkeyOnMonitor(host, VK_LWIN, VK_TAB);
@@ -59,17 +65,27 @@ namespace WindowsBar.Services
         /// </summary>
         private static void HotkeyOnMonitor(TaskbarWindow host, ushort modifier, ushort key)
         {
+            string action = $"Win+{KeyName(key)}";
+            var before = FlyoutPositioner.Snapshot();
+
             if (host != null)
             {
                 host.SetTrayHost();
                 ImmersiveShellHelper.AllowExplorerFocus();
-                NativeMethods.SetForegroundWindow(host.Handle);
+                bool fg = NativeMethods.SetForegroundWindow(host.Handle);
+                DiagLog.Write($"[{action}] barra={Describe(host)} primer plano={fg}");
             }
 
             SendCombo(modifier, key);
-
-            if (host != null) FlyoutPositioner.EnsureOnMonitor(host);
+            FlyoutPositioner.EnsureOnMonitor(host, before, action);
         }
+
+        private static string KeyName(ushort key) => key switch
+        {
+            VK_TAB => "Tab",
+            VK_SPACE => "Espacio",
+            _ => ((char)key).ToString()
+        };
 
         private static void HotkeyOnMonitor(TaskbarWindow host, ushort modifier, char key) => HotkeyOnMonitor(host, modifier, (ushort)key);
 

@@ -17,8 +17,12 @@ namespace WindowsBar.Services
         public string Date { get => _date; private set => Set(ref _date, value); }
         public string ToolTip { get => _toolTip; private set => Set(ref _toolTip, value); }
 
-        public ClockService(Dispatcher dispatcher)
+        private readonly SettingsService _settings;
+
+        public ClockService(Dispatcher dispatcher, SettingsService settings)
         {
+            _settings = settings;
+            _settings.Changed += OnSystemChanged;
             _timer = new DispatcherTimer(DispatcherPriority.Normal, dispatcher);
             _timer.Tick += (_, _) => Tick();
             SystemEvents.TimeChanged += OnSystemChanged;
@@ -37,14 +41,17 @@ namespace WindowsBar.Services
             DateTime now = DateTime.Now;
             var culture = CultureInfo.CurrentCulture;
 
-            Time = now.ToString(culture.DateTimeFormat.ShortTimePattern, culture);
+            bool seconds = _settings.Data.ShowClockSeconds;
+            Time = now.ToString(seconds ? culture.DateTimeFormat.LongTimePattern : culture.DateTimeFormat.ShortTimePattern, culture);
             Date = now.ToString(culture.DateTimeFormat.ShortDatePattern, culture);
             string longDate = now.ToString(culture.DateTimeFormat.LongDatePattern, culture);
             ToolTip = longDate.Length > 0 ? char.ToUpper(longDate[0], culture) + longDate.Substring(1) : longDate;
 
-            // Despertar justo al empezar el siguiente minuto.
+            // Despertar justo al empezar el siguiente segundo o minuto.
             _timer.Stop();
-            _timer.Interval = TimeSpan.FromMilliseconds(60000 - now.Second * 1000 - now.Millisecond + 50);
+            _timer.Interval = seconds
+                ? TimeSpan.FromMilliseconds(1000 - now.Millisecond + 20)
+                : TimeSpan.FromMilliseconds(60000 - now.Second * 1000 - now.Millisecond + 50);
             _timer.Start();
         }
 
@@ -52,6 +59,7 @@ namespace WindowsBar.Services
         {
             _timer.Stop();
             SystemEvents.TimeChanged -= OnSystemChanged;
+            _settings.Changed -= OnSystemChanged;
             SystemEvents.UserPreferenceChanged -= OnSystemChanged;
         }
     }

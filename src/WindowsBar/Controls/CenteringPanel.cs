@@ -10,6 +10,17 @@ namespace WindowsBar.Controls
     /// </summary>
     public class CenteringPanel : Panel
     {
+        public static readonly DependencyProperty CenterMiddleProperty =
+            DependencyProperty.Register(nameof(CenterMiddle), typeof(bool), typeof(CenteringPanel),
+                new FrameworkPropertyMetadata(true, FrameworkPropertyMetadataOptions.AffectsArrange));
+
+        /// <summary>true: grupo central centrado (Windows 11). false: pegado a la izquierda.</summary>
+        public bool CenterMiddle
+        {
+            get => (bool)GetValue(CenterMiddleProperty);
+            set => SetValue(CenterMiddleProperty, value);
+        }
+
         protected override Size MeasureOverride(Size available)
         {
             double height = 0;
@@ -58,7 +69,7 @@ namespace WindowsBar.Controls
                 var center = InternalChildren[1];
                 double available = Math.Max(0, final.Width - leftWidth - rightWidth);
                 double width = Math.Min(center.DesiredSize.Width, available);
-                double x = (final.Width - width) / 2;
+                double x = CenterMiddle ? (final.Width - width) / 2 : leftWidth;
                 x = Math.Max(leftWidth, Math.Min(x, final.Width - rightWidth - width));
                 center.Arrange(new Rect(x, 0, width, final.Height));
             }

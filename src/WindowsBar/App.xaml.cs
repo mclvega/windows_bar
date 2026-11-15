@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using System.Windows;
 using System.Windows.Threading;
 using ManagedShell;
@@ -11,7 +12,10 @@ namespace WindowsBar
 {
     public partial class App : Application
     {
+        public const string ExitSignalName = "WindowsBar.ExitSignal";
+
         private bool _exited;
+        private EventWaitHandle _exitSignal;
 
         public static AppServices Services { get; private set; }
 
@@ -35,6 +39,11 @@ namespace WindowsBar
 
             Services = new AppServices(shellManager, settings);
             Services.WindowManager.Start();
+
+            // Señal para "WindowsBar.exe --exit" (usada por publish.ps1 al actualizar).
+            _exitSignal = new EventWaitHandle(false, EventResetMode.AutoReset, ExitSignalName);
+            ThreadPool.RegisterWaitForSingleObject(_exitSignal,
+                (_, _) => Dispatcher.BeginInvoke(new Action(ExitGracefully)), null, Timeout.Infinite, true);
         }
 
         public void ExitGracefully()

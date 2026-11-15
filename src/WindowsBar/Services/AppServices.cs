@@ -30,9 +30,9 @@ namespace WindowsBar.Services
             Audio = new AudioService(dispatcher);
             Network = new NetworkService(dispatcher);
             Power = new PowerService(dispatcher);
-            InputLanguage = new InputLanguageService(dispatcher);
+            InputLanguage = new InputLanguageService(dispatcher, settings);
             Microphone = new MicUsageService(dispatcher);
-            Clock = new ClockService(dispatcher);
+            Clock = new ClockService(dispatcher, settings);
             WindowManager = new WindowManager(this);
         }
 

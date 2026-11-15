@@ -24,8 +24,11 @@ namespace WindowsBar.Services
         /// <summary>Como en Windows: solo se muestra si hay más de un idioma/teclado instalado.</summary>
         public bool IsVisible { get => _isVisible; private set => Set(ref _isVisible, value); }
 
-        public InputLanguageService(Dispatcher dispatcher)
+        private readonly SettingsService _settings;
+
+        public InputLanguageService(Dispatcher dispatcher, SettingsService settings)
         {
+            _settings = settings;
             _timer = new DispatcherTimer(TimeSpan.FromMilliseconds(300), DispatcherPriority.Background, (_, _) => Refresh(), dispatcher);
             Refresh();
         }
@@ -36,7 +39,11 @@ namespace WindowsBar.Services
             uint thread = NativeMethods.GetWindowThreadProcessId(fg, out uint pid);
 
             // Si la ventana activa es nuestra barra, mantenemos el último idioma visto.
-            if (pid == _ownProcessId && !string.IsNullOrEmpty(ShortName)) return;
+            if (pid == _ownProcessId && !string.IsNullOrEmpty(ShortName))
+            {
+                if (!_settings.Data.ShowInputLanguage) IsVisible = false;
+                return;
+            }
 
             IntPtr hkl = NativeMethods.GetKeyboardLayout(thread);
             int langId = (int)((long)hkl & 0xFFFF);
@@ -52,8 +59,10 @@ namespace WindowsBar.Services
                 Debug.WriteLine(ex.Message);
             }
 
-            try { IsVisible = System.Windows.Forms.InputLanguage.InstalledInputLanguages.Count > 1; }
-            catch { IsVisible = true; }
+            bool several;
+            try { several = System.Windows.Forms.InputLanguage.InstalledInputLanguages.Count > 1; }
+            catch { several = true; }
+            IsVisible = several && _settings.Data.ShowInputLanguage;
         }
 
         /// <summary>
