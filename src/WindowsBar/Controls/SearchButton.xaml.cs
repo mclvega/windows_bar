@@ -11,6 +11,6 @@ namespace WindowsBar.Controls
             InitializeComponent();
         }
 
-        private void Button_Click(object sender, RoutedEventArgs e) => ShellCommands.Search();
+        private void Button_Click(object sender, RoutedEventArgs e) => ShellCommands.Search(Window.GetWindow(this) as WindowsBar.Views.TaskbarWindow);
     }
 }

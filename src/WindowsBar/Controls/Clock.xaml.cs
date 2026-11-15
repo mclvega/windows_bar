@@ -13,7 +13,7 @@ namespace WindowsBar.Controls
         }
 
         /// <summary>Calendario y notificaciones (Win+N), como en Windows 11.</summary>
-        private void Clock_Click(object sender, RoutedEventArgs e) => ShellCommands.NotificationCenter();
+        private void Clock_Click(object sender, RoutedEventArgs e) => ShellCommands.NotificationCenter(Window.GetWindow(this) as WindowsBar.Views.TaskbarWindow);
 
         private void DateTimeSettings_Click(object sender, RoutedEventArgs e) => ShellCommands.DateTimeSettings();
     }

@@ -15,7 +15,7 @@ namespace WindowsBar.Controls
 
         private void Microphone_Click(object sender, RoutedEventArgs e) => ShellCommands.MicrophonePrivacySettings();
 
-        private void Language_Click(object sender, RoutedEventArgs e) => ShellCommands.SwitchInputLanguage();
+        private void Language_Click(object sender, RoutedEventArgs e) => ShellCommands.SwitchInputLanguage(Window.GetWindow(this) as WindowsBar.Views.TaskbarWindow);
 
         private void Language_MouseRightButtonUp(object sender, MouseButtonEventArgs e)
         {
@@ -23,7 +23,7 @@ namespace WindowsBar.Controls
             ShellCommands.LanguageSettings();
         }
 
-        private void QuickSettings_Click(object sender, RoutedEventArgs e) => ShellCommands.QuickSettings();
+        private void QuickSettings_Click(object sender, RoutedEventArgs e) => ShellCommands.QuickSettings(Window.GetWindow(this) as WindowsBar.Views.TaskbarWindow);
 
         /// <summary>Rueda del ratón sobre los iconos: subir/bajar volumen, como en Windows 11.</summary>
         private void QuickSettings_MouseWheel(object sender, MouseWheelEventArgs e)
