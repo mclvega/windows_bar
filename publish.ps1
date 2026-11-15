@@ -26,6 +26,7 @@ if ($LASTEXITCODE -ne 0) { throw 'La compilación falló.' }
 # 3. Inicio con Windows (la app también lo comprueba al arrancar).
 Set-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run' -Name 'WindowsBar' -Value "`"$exe`""
 
-# 4. Arrancar.
-Start-Process $exe
+# 4. Arrancar a través de Explorer, para que herede el entorno normal del usuario
+#    (y no el de la terminal desde la que se ejecuta este script).
+Start-Process explorer.exe -ArgumentList "`"$exe`""
 Write-Host 'WindowsBar instalada, registrada en el inicio de Windows y en ejecución.'

@@ -49,6 +49,13 @@ namespace WindowsBar
                 Thread.Sleep(500);
             }
 
+            // Las apps que abramos heredan nuestro entorno: lo dejamos como el de una sesión normal
+            // (sin ELECTRON_RUN_AS_NODE, VSCODE_*, etc. si nos lanzó otra herramienta).
+            UserEnvironment.ResetToUserDefaults();
+            DiagLog.Write($"[Arranque] entorno de usuario aplicado; ELECTRON_RUN_AS_NODE presente: " +
+                          $"{(Environment.GetEnvironmentVariable("ELECTRON_RUN_AS_NODE") == null ? "no" : "SÍ")}, " +
+                          $"VSCODE_PID presente: {(Environment.GetEnvironmentVariable("VSCODE_PID") == null ? "no" : "SÍ")}");
+
             System.Windows.Forms.Application.SetHighDpiMode(System.Windows.Forms.HighDpiMode.PerMonitorV2);
 
             var app = new App();
