@@ -221,17 +221,26 @@ namespace WindowsBar.Services
                 // El texto puede empezar en offset par o impar: probamos ambas alineaciones.
                 string even = Encoding.Unicode.GetString(favorites);
                 string odd = favorites.Length > 1 ? Encoding.Unicode.GetString(favorites, 1, favorites.Length - 1) : "";
-                int Position(PinnedApp p)
+
+                // Posición en bytes de la primera aparición de un texto en el blob.
+                int BytePosition(string text)
                 {
-                    string name = Path.GetFileName(p.LaunchPath);
-                    int a = even.IndexOf(name, StringComparison.OrdinalIgnoreCase);
-                    int b = odd.IndexOf(name, StringComparison.OrdinalIgnoreCase);
+                    int a = even.IndexOf(text, StringComparison.OrdinalIgnoreCase);
+                    int b = odd.IndexOf(text, StringComparison.OrdinalIgnoreCase);
                     int pa = a < 0 ? int.MaxValue : a * 2;
                     int pb = b < 0 ? int.MaxValue : b * 2 + 1;
                     return Math.Min(pa, pb);
                 }
 
-                result = result.OrderBy(Position).ThenBy(p => p.Name).ToList();
+                // Apps de la Store (WhatsApp...): Windows no crea .lnk, solo guarda su AUMID en el blob.
+                result.AddRange(PackagedPinsFromBlob(even + "\n" + odd));
+
+                result = result
+                    .OrderBy(p => BytePosition(AppIdentity.IsPackaged(p.Aumid) && p.LaunchPath.StartsWith("shell:", StringComparison.OrdinalIgnoreCase)
+                        ? p.Aumid
+                        : Path.GetFileName(p.LaunchPath)))
+                    .ThenBy(p => p.Name)
+                    .ToList();
             }
             else
             {
@@ -239,6 +248,45 @@ namespace WindowsBar.Services
             }
 
             return result;
+        }
+
+        /// <summary>AUMIDs de apps empaquetadas ("Familia_idEditor!App") que aparecen en el blob y existen en el sistema.</summary>
+        private static IEnumerable<PinnedApp> PackagedPinsFromBlob(string blobText)
+        {
+            var installed = InstalledAppIds();
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var pattern = new System.Text.RegularExpressions.Regex(@"[A-Za-z0-9][A-Za-z0-9.\-]*_[a-z0-9]{13}![A-Za-z0-9.\-_]+");
+
+            foreach (System.Text.RegularExpressions.Match m in pattern.Matches(blobText))
+            {
+                string aumid = m.Value;
+                if (!seen.Add(aumid) || !installed.Contains(aumid)) continue;
+
+                yield return new PinnedApp
+                {
+                    LaunchPath = AppIdentity.AppsFolderPath(aumid),
+                    Aumid = aumid,
+                    Name = AppIdentity.GetDisplayName(aumid) ?? aumid
+                };
+            }
+        }
+
+        /// <summary>Identificadores de todas las apps de "shell:AppsFolder" (lo que muestra Inicio → Todas).</summary>
+        private static HashSet<string> InstalledAppIds()
+        {
+            var ids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            try
+            {
+                dynamic shell = Activator.CreateInstance(Type.GetTypeFromProgID("Shell.Application"));
+                dynamic folder = shell.NameSpace("shell:AppsFolder");
+                foreach (dynamic item in folder.Items())
+                {
+                    string id = item.Path;
+                    if (!string.IsNullOrEmpty(id)) ids.Add(id);
+                }
+            }
+            catch { }
+            return ids;
         }
 
         private static string SafeGet(Func<string> getter)
