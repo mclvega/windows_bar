@@ -9,6 +9,42 @@ namespace WindowsBar.Interop
 {
     internal static class ShellItemHelper
     {
+        [ComImport, Guid("43826d1e-e718-42ee-bc55-a1e261c37bfe"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+        private interface IShellItem
+        {
+            void BindToHandler(IntPtr pbc, ref Guid bhid, ref Guid riid, out IntPtr ppv);
+            void GetParent(out IShellItem ppsi);
+            [PreserveSig] int GetDisplayName(uint sigdnName, out IntPtr ppszName);
+        }
+
+        [DllImport("shell32.dll", CharSet = CharSet.Unicode, PreserveSig = false)]
+        private static extern void SHCreateItemFromParsingName(string path, IntPtr pbc, [MarshalAs(UnmanagedType.LPStruct)] Guid riid, [MarshalAs(UnmanagedType.Interface)] out IShellItem item);
+
+        private const uint SIGDN_NORMALDISPLAY = 0;
+
+        /// <summary>Nombre visible de un elemento del shell (p. ej. "shell:AppsFolder\AUMID" → "WhatsApp").</summary>
+        public static string GetDisplayName(string parsingName)
+        {
+            try
+            {
+                SHCreateItemFromParsingName(parsingName, IntPtr.Zero, typeof(IShellItem).GUID, out var item);
+                try
+                {
+                    if (item.GetDisplayName(SIGDN_NORMALDISPLAY, out IntPtr ptr) != 0 || ptr == IntPtr.Zero) return null;
+                    try { return Marshal.PtrToStringUni(ptr); }
+                    finally { Marshal.FreeCoTaskMem(ptr); }
+                }
+                finally
+                {
+                    Marshal.ReleaseComObject(item);
+                }
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
         /// <summary>
         /// Icono de cualquier elemento del shell: .exe, .lnk o "shell:AppsFolder\AUMID".
         /// </summary>

@@ -16,11 +16,19 @@ namespace WindowsBar.Services
     /// </summary>
     internal static class FlyoutPositioner
     {
-        // Procesos que dibujan los paneles del shell de Windows 11.
+        // Procesos que dibujan los paneles del shell de Windows 11. NO incluye procesos genéricos
+        // (msedgewebview2, apps normales...) para no mover nunca ventanas del usuario.
         private static readonly HashSet<string> ShellProcesses = new(StringComparer.OrdinalIgnoreCase)
         {
             "ShellExperienceHost", "StartMenuExperienceHost", "SearchHost", "SearchApp",
-            "Widgets", "WidgetBoard", "ShellHost", "explorer", "msedgewebview2"
+            "Widgets", "WidgetBoard", "ShellHost", "explorer"
+        };
+
+        // Clases de ventana de los paneles (además del proceso, para no tocar p. ej. ventanas del Explorador).
+        private static readonly HashSet<string> FlyoutClasses = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "Windows.UI.Core.CoreWindow", "XamlExplorerHostIslandWindow", "ControlCenterWindow",
+            "Shell_InputSwitchTopLevelWindow", "TopLevelWindowForOverflowXamlIsland", "Xaml_WindowedPopupClass"
         };
 
         private const int PollMs = 50;
@@ -62,7 +70,7 @@ namespace WindowsBar.Services
                     DiagLog.Write($"[{action}] {(isNew ? "nueva" : "movida")} {process}/{ClassName(hwnd)} '{Title(hwnd)}' " +
                                   $"rect=({rect.Left},{rect.Top},{rect.Right},{rect.Bottom}) monitor={(wrongMonitor ? "OTRO" : "correcto")}");
 
-                    if (!wrongMonitor || !ShellProcesses.Contains(process)) continue;
+                    if (!wrongMonitor || !ShellProcesses.Contains(process) || !FlyoutClasses.Contains(ClassName(hwnd))) continue;
 
                     // Misma posición relativa respecto al borde inferior-derecho/izquierdo del monitor de destino.
                     int width = rect.Right - rect.Left;

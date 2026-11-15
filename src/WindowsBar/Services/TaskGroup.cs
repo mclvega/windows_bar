@@ -50,10 +50,37 @@ namespace WindowsBar.Services
             }
         }
 
+        /// <summary>AUMID de paquete de la app (Store/WinUI), o null.</summary>
+        private string PackagedAumid
+        {
+            get
+            {
+                if (_packagedAumidResolved) return _packagedAumid;
+                var first = Windows.FirstOrDefault();
+                if (first == null) return Pin != null && Interop.AppIdentity.IsPackaged(Pin.Aumid) ? Pin.Aumid : null;
+                string aumid = Interop.AppIdentity.GetAumid(first);
+                _packagedAumid = Interop.AppIdentity.IsPackaged(aumid) ? aumid : null;
+                _packagedAumidResolved = true;
+                return _packagedAumid;
+            }
+        }
+
+        private string _packagedAumid;
+        private bool _packagedAumidResolved;
+        private ImageSource _packagedIcon;
+
         public ImageSource Icon
         {
             get
             {
+                // Apps empaquetadas: su ventana suele dar un icono genérico; usamos el del paquete.
+                string packaged = PackagedAumid;
+                if (packaged != null)
+                {
+                    _packagedIcon ??= Interop.ShellItemHelper.GetIcon(Interop.AppIdentity.AppsFolderPath(packaged), 32);
+                    if (_packagedIcon != null) return _packagedIcon;
+                }
+
                 var window = Windows.FirstOrDefault(w => w.Icon != null);
                 if (window != null) return window.Icon;
                 if (Pin == null) return null;
@@ -66,7 +93,7 @@ namespace WindowsBar.Services
         {
             get
             {
-                if (Windows.Count == 1) return Windows[0].Title;
+                if (Windows.Count == 1) return string.IsNullOrWhiteSpace(Windows[0].Title) ? Name : Windows[0].Title;
                 if (Windows.Count > 1) return $"{Name} - {Windows.Count} ventanas";
                 return Name;
             }
@@ -89,7 +116,8 @@ namespace WindowsBar.Services
                 if (Pin != null) return Pin.LaunchPath;
                 var w = Windows.FirstOrDefault();
                 if (w == null) return null;
-                if (w.IsUWP && !string.IsNullOrEmpty(w.AppUserModelID)) return @"shell:AppsFolder\" + w.AppUserModelID;
+                if (PackagedAumid != null) return Interop.AppIdentity.AppsFolderPath(PackagedAumid);
+                if (w.IsUWP && !string.IsNullOrEmpty(w.AppUserModelID)) return Interop.AppIdentity.AppsFolderPath(w.AppUserModelID);
                 return w.WinFileName;
             }
         }

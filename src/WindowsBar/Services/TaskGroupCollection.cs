@@ -175,8 +175,7 @@ namespace WindowsBar.Services
 
         private static string WindowKey(ApplicationWindow w)
         {
-            string aumid = null, path = null;
-            try { aumid = w.AppUserModelID; } catch { }
+            string aumid = Interop.AppIdentity.GetAumid(w), path = null;
             if (!string.IsNullOrEmpty(aumid)) return "aumid:" + aumid.ToLowerInvariant();
             try { path = w.WinFileName; } catch { }
             return string.IsNullOrEmpty(path) ? "hwnd:" + w.Handle : "path:" + path.ToLowerInvariant();

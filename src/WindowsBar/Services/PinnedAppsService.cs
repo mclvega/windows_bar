@@ -35,6 +35,64 @@ namespace WindowsBar.Services
                 _settings.Data.PinsImported = true;
                 _settings.Save();
             }
+
+            if (RepairPackagedPins()) _settings.Save();
+        }
+
+        /// <summary>
+        /// Anclajes antiguos a un .exe dentro de WindowsApps (apps de la Store, p. ej. WhatsApp.Root.exe)
+        /// se convierten a la app del paquete: se abren por su AUMID y muestran su nombre e icono reales.
+        /// </summary>
+        private bool RepairPackagedPins()
+        {
+            bool changed = false;
+            foreach (var pin in _settings.Data.PinnedApps)
+            {
+                if (AppIdentity.IsPackaged(pin.Aumid)) continue;
+
+                string path = pin.TargetPath ?? pin.LaunchPath;
+                string family = PackageFamilyFromPath(path);
+                if (family == null) continue;
+
+                string aumid = FindAumidForFamily(family);
+                if (aumid == null) continue;
+
+                pin.Aumid = aumid;
+                pin.LaunchPath = AppIdentity.AppsFolderPath(aumid);
+                pin.Name = AppIdentity.GetDisplayName(aumid) ?? pin.Name;
+                changed = true;
+            }
+            return changed;
+        }
+
+        /// <summary>"...\WindowsApps\5319275A.WhatsAppDesktop_2.2644.101.0_x64__cv1g1gvanyjgm\x.exe" → "5319275A.WhatsAppDesktop_cv1g1gvanyjgm".</summary>
+        private static string PackageFamilyFromPath(string path)
+        {
+            if (string.IsNullOrEmpty(path)) return null;
+            const string marker = @"\WindowsApps\";
+            int i = path.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
+            if (i < 0) return null;
+
+            string folder = path.Substring(i + marker.Length).Split('\\')[0];
+            string[] parts = folder.Split('_');   // nombre_versión_arquitectura_recurso_idEditor
+            return parts.Length >= 5 ? parts[0] + "_" + parts[^1] : null;
+        }
+
+        /// <summary>Busca en "shell:AppsFolder" el AUMID de la app principal de una familia de paquete.</summary>
+        private static string FindAumidForFamily(string family)
+        {
+            try
+            {
+                dynamic shell = Activator.CreateInstance(Type.GetTypeFromProgID("Shell.Application"));
+                dynamic folder = shell.NameSpace("shell:AppsFolder");
+                foreach (dynamic item in folder.Items())
+                {
+                    string id = item.Path;
+                    if (id != null && id.StartsWith(family + "!", StringComparison.OrdinalIgnoreCase)) return id;
+                }
+            }
+            catch { }
+            return null;
         }
 
         public IReadOnlyList<PinnedApp> Apps => _settings.Data.PinnedApps;
@@ -46,7 +104,7 @@ namespace WindowsBar.Services
 
         public static bool Matches(PinnedApp pin, ApplicationWindow window)
         {
-            string windowAumid = SafeGet(() => window.AppUserModelID);
+            string windowAumid = AppIdentity.GetAumid(window);
             string windowPath = SafeGet(() => window.WinFileName);
 
             bool pinHasAumid = !string.IsNullOrEmpty(pin.Aumid);
@@ -64,14 +122,17 @@ namespace WindowsBar.Services
         {
             if (FindMatch(window) != null) return;
 
-            string aumid = SafeGet(() => window.AppUserModelID);
+            string aumid = AppIdentity.GetAumid(window);
             string path = SafeGet(() => window.WinFileName);
+
+            // Las apps empaquetadas (Store/UWP) se lanzan por su AUMID, no por el .exe de WindowsApps.
+            bool launchByAumid = (window.IsUWP || AppIdentity.IsPackaged(aumid)) && !string.IsNullOrEmpty(aumid);
 
             var pin = new PinnedApp
             {
                 Aumid = aumid,
                 TargetPath = window.IsUWP ? null : path,
-                LaunchPath = window.IsUWP && !string.IsNullOrEmpty(aumid) ? @"shell:AppsFolder\" + aumid : path,
+                LaunchPath = launchByAumid ? AppIdentity.AppsFolderPath(aumid) : path,
                 Name = GetAppName(window)
             };
 
@@ -105,6 +166,14 @@ namespace WindowsBar.Services
 
         public static string GetAppName(ApplicationWindow window)
         {
+            // Apps empaquetadas: el nombre que muestra Windows ("WhatsApp"), no el del .exe ("WhatsApp.Root").
+            string aumid = AppIdentity.GetAumid(window);
+            if (AppIdentity.IsPackaged(aumid))
+            {
+                string displayName = AppIdentity.GetDisplayName(aumid);
+                if (!string.IsNullOrWhiteSpace(displayName)) return displayName;
+            }
+
             string description = SafeGet(() => window.WinFileDescription);
             if (!string.IsNullOrWhiteSpace(description)) return description;
 
