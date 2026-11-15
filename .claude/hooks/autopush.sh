@@ -3,7 +3,7 @@
 set -e
 cd "${CLAUDE_PROJECT_DIR:-$(dirname "$0")/../..}"
 
-git add -A
+git add -A 2>/dev/null
 if git diff --cached --quiet; then
   exit 0
 fi
