@@ -9,12 +9,17 @@
     <LangVersion>10</LangVersion>
     <StartupObject>WindowsBar.Program</StartupObject>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Resources\WindowsBar.ico</ApplicationIcon>
     <AssemblyName>WindowsBar</AssemblyName>
     <RootNamespace>WindowsBar</RootNamespace>
     <Version>0.1.0</Version>
     <!-- net6 es el runtime de escritorio disponible; el DPI por monitor lo declara app.manifest (necesario para WPF). -->
     <NoWarn>$(NoWarn);NETSDK1138;WFAC010</NoWarn>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Resource Include="Resources\WindowsBar.ico" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="ManagedShell" Version="0.0.374" />

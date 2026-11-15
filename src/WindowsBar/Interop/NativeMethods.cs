@@ -49,6 +49,9 @@ namespace WindowsBar.Interop
         [DllImport("user32.dll", CharSet = CharSet.Unicode)]
         public static extern int GetClassName(IntPtr hWnd, StringBuilder name, int max);
 
+        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+        public static extern int GetWindowText(IntPtr hWnd, StringBuilder text, int max);
+
         [DllImport("user32.dll")]
         public static extern IntPtr MonitorFromWindow(IntPtr hWnd, uint flags);
 

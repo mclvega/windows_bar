@@ -26,10 +26,11 @@ namespace WindowsBar.Services
         private const int PollMs = 50;
         private const int MaxPolls = 30; // 1,5 s
 
-        /// <summary>Instantánea de ventanas visibles, para tomarla ANTES de abrir el panel.</summary>
-        public static HashSet<IntPtr> Snapshot() => new(VisibleWindows());
+        /// <summary>Instantánea (ventana → rectángulo) de las ventanas visibles, tomada ANTES de abrir el panel.</summary>
+        public static Dictionary<IntPtr, NativeMethods.RECT> Snapshot() =>
+            VisibleWindows().ToDictionary(h => h, h => { NativeMethods.GetWindowRect(h, out var r); return r; });
 
-        public static void EnsureOnMonitor(TaskbarWindow host, HashSet<IntPtr> before, string action)
+        public static void EnsureOnMonitor(TaskbarWindow host, Dictionary<IntPtr, NativeMethods.RECT> before, string action)
         {
             if (host == null) return;
 
@@ -46,19 +47,22 @@ namespace WindowsBar.Services
                 polls++;
                 foreach (IntPtr hwnd in VisibleWindows())
                 {
-                    if (before.Contains(hwnd) || !handled.Add(hwnd)) continue;
+                    NativeMethods.GetWindowRect(hwnd, out var rect);
+
+                    // Candidata: ventana nueva, o ya existente que cambió de posición/tamaño (paneles que se deslizan).
+                    bool isNew = !before.TryGetValue(hwnd, out var old);
+                    bool changed = !isNew && (old.Left != rect.Left || old.Top != rect.Top || old.Right != rect.Right || old.Bottom != rect.Bottom);
+                    if ((!isNew && !changed) || !handled.Add(hwnd)) continue;
 
                     string process = ProcessName(hwnd);
-                    if (!ShellProcesses.Contains(process)) continue;
-
-                    NativeMethods.GetWindowRect(hwnd, out var rect);
+                    if (process == "WindowsBar") continue; // nuestras propias barras (p. ej. al auto-ocultarse)
                     var source = System.Windows.Forms.Screen.FromHandle(hwnd).Bounds;
                     bool wrongMonitor = !source.Equals(target);
 
-                    DiagLog.Write($"[{action}] ventana nueva {process}/{ClassName(hwnd)} rect=({rect.Left},{rect.Top},{rect.Right},{rect.Bottom}) " +
-                                  $"monitor={(wrongMonitor ? "OTRO" : "correcto")}");
+                    DiagLog.Write($"[{action}] {(isNew ? "nueva" : "movida")} {process}/{ClassName(hwnd)} '{Title(hwnd)}' " +
+                                  $"rect=({rect.Left},{rect.Top},{rect.Right},{rect.Bottom}) monitor={(wrongMonitor ? "OTRO" : "correcto")}");
 
-                    if (!wrongMonitor) continue;
+                    if (!wrongMonitor || !ShellProcesses.Contains(process)) continue;
 
                     // Misma posición relativa respecto al borde inferior-derecho/izquierdo del monitor de destino.
                     int width = rect.Right - rect.Left;
@@ -78,7 +82,7 @@ namespace WindowsBar.Services
                 if (polls >= MaxPolls)
                 {
                     timer.Stop();
-                    if (handled.Count == 0) DiagLog.Write($"[{action}] no apareció ninguna ventana nueva del shell");
+                    if (handled.Count == 0) DiagLog.Write($"[{action}] ninguna ventana visible nueva ni movida en 1,5 s");
                 }
             };
             timer.Start();
@@ -111,6 +115,13 @@ namespace WindowsBar.Services
             {
                 return "?";
             }
+        }
+
+        private static string Title(IntPtr hwnd)
+        {
+            var sb = new StringBuilder(256);
+            NativeMethods.GetWindowText(hwnd, sb, sb.Capacity);
+            return sb.ToString();
         }
 
         private static string ClassName(IntPtr hwnd)
