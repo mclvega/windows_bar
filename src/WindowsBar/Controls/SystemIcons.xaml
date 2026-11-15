@@ -1,0 +1,43 @@
+<UserControl x:Class="WindowsBar.Controls.SystemIcons"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <StackPanel Orientation="Horizontal">
+
+        <!-- Micrófono en uso (indicador de privacidad) -->
+        <Button Style="{StaticResource BarButton}" Width="32" Height="40" Margin="1,0"
+                ToolTip="{Binding Microphone.ToolTip}" Click="Microphone_Click"
+                Visibility="{Binding Microphone.InUse, Converter={StaticResource BoolToVisibility}}">
+            <TextBlock Style="{StaticResource Glyph}" Text="&#xE720;" Foreground="{StaticResource MicInUse}" />
+        </Button>
+
+        <!-- Idioma de entrada (ESP, ENG...) -->
+        <Button Style="{StaticResource BarButton}" Height="40" Padding="8,0" Margin="1,0"
+                ToolTip="{Binding InputLanguage.FullName}" Click="Language_Click"
+                MouseRightButtonUp="Language_MouseRightButtonUp"
+                Visibility="{Binding InputLanguage.IsVisible, Converter={StaticResource BoolToVisibility}}">
+            <TextBlock Style="{StaticResource BarText}" Text="{Binding InputLanguage.ShortName}" />
+        </Button>
+
+        <!-- Configuración rápida: red, volumen y batería -->
+        <Button Style="{StaticResource BarButton}" Height="40" Padding="8,0" Margin="1,0"
+                Click="QuickSettings_Click" MouseWheel="QuickSettings_MouseWheel"
+                MouseUp="QuickSettings_MouseUp">
+            <Button.ContextMenu>
+                <ContextMenu Placement="Top">
+                    <MenuItem Header="Configuración de sonido" Click="SoundSettings_Click" />
+                    <MenuItem Header="Mezclador de volumen" Click="VolumeMixer_Click" />
+                    <MenuItem Header="Configuración de red e Internet" Click="NetworkSettings_Click" />
+                </ContextMenu>
+            </Button.ContextMenu>
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Style="{StaticResource Glyph}" Text="{Binding Network.Glyph}" Margin="0,0,10,0"
+                           ToolTip="{Binding Network.ToolTip}" Background="Transparent" />
+                <TextBlock Style="{StaticResource Glyph}" Text="{Binding Audio.Glyph}"
+                           ToolTip="{Binding Audio.ToolTip}" Background="Transparent" />
+                <TextBlock Style="{StaticResource Glyph}" Text="{Binding Power.Glyph}" Margin="10,0,0,0"
+                           ToolTip="{Binding Power.ToolTip}" Background="Transparent"
+                           Visibility="{Binding Power.HasBattery, Converter={StaticResource BoolToVisibility}}" />
+            </StackPanel>
+        </Button>
+    </StackPanel>
+</UserControl>

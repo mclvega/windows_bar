@@ -1,0 +1,46 @@
+<appbar:AppBarWindow x:Class="WindowsBar.Views.TaskbarWindow"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                     xmlns:appbar="clr-namespace:ManagedShell.AppBar;assembly=ManagedShell.AppBar"
+                     xmlns:controls="clr-namespace:WindowsBar.Controls"
+                     Title="WindowsBar"
+                     Background="{StaticResource BarBackground}"
+                     FontFamily="{StaticResource TextFont}">
+
+    <Window.ContextMenu>
+        <ContextMenu Opened="BarContextMenu_Opened">
+            <MenuItem Header="Administrador de tareas" Click="TaskManager_Click" />
+            <Separator />
+            <MenuItem x:Name="AllTaskbarsMenuItem" Header="Mostrar ventanas de todos los monitores"
+                      IsCheckable="True" Click="AllTaskbars_Click" />
+            <MenuItem Header="Configuración de la barra de tareas" Click="TaskbarSettings_Click" />
+            <Separator />
+            <MenuItem Header="Salir de WindowsBar" Click="Exit_Click" />
+        </ContextMenu>
+    </Window.ContextMenu>
+
+    <Border BorderBrush="{StaticResource BarBorder}" BorderThickness="0,1,0,0">
+        <controls:CenteringPanel>
+            <!-- Izquierda: Widgets -->
+            <StackPanel Orientation="Horizontal" Margin="6,0,0,0">
+                <controls:WidgetsButton />
+            </StackPanel>
+
+            <!-- Centro: Inicio, Búsqueda, Vista de tareas y apps -->
+            <StackPanel Orientation="Horizontal">
+                <controls:StartButton />
+                <controls:SearchButton />
+                <controls:TaskViewButton />
+                <controls:TaskList x:Name="TaskList" />
+            </StackPanel>
+
+            <!-- Derecha: bandeja, iconos del sistema, reloj y Mostrar escritorio -->
+            <StackPanel Orientation="Horizontal">
+                <controls:TrayArea x:Name="TrayArea" />
+                <controls:SystemIcons />
+                <controls:Clock />
+                <controls:ShowDesktopButton />
+            </StackPanel>
+        </controls:CenteringPanel>
+    </Border>
+</appbar:AppBarWindow>

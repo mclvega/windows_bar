@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net6.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>disable</Nullable>
+    <LangVersion>10</LangVersion>
+    <StartupObject>WindowsBar.Program</StartupObject>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AssemblyName>WindowsBar</AssemblyName>
+    <RootNamespace>WindowsBar</RootNamespace>
+    <Version>0.1.0</Version>
+    <!-- net6 es el runtime de escritorio disponible; el DPI por monitor lo declara app.manifest (necesario para WPF). -->
+    <NoWarn>$(NoWarn);NETSDK1138;WFAC010</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ManagedShell" Version="0.0.374" />
+    <PackageReference Include="NAudio.Wasapi" Version="2.2.1" />
+  </ItemGroup>
+
+</Project>

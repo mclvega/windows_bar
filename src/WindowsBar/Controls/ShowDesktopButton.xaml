@@ -1,0 +1,20 @@
+<UserControl x:Class="WindowsBar.Controls.ShowDesktopButton"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- Franja final a la derecha: muestra una línea al pasar el ratón -->
+    <Button Width="12" Height="48" Focusable="False" ToolTip="Mostrar escritorio" Click="Button_Click">
+        <Button.Template>
+            <ControlTemplate TargetType="Button">
+                <Border Background="Transparent">
+                    <Border x:Name="Line" Width="1" Height="18" HorizontalAlignment="Left"
+                            Background="{StaticResource RunningIndicator}" Visibility="Hidden" />
+                </Border>
+                <ControlTemplate.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True">
+                        <Setter TargetName="Line" Property="Visibility" Value="Visible" />
+                    </Trigger>
+                </ControlTemplate.Triggers>
+            </ControlTemplate>
+        </Button.Template>
+    </Button>
+</UserControl>

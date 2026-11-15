@@ -1,0 +1,170 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+
+    <!-- Dimensiones -->
+    <sys:Double x:Key="TaskbarHeight">48</sys:Double>
+    <sys:Double x:Key="TaskButtonSize">44</sys:Double>
+    <sys:Double x:Key="TaskIconSize">24</sys:Double>
+
+    <!-- Fuentes -->
+    <FontFamily x:Key="IconFont">Segoe Fluent Icons, Segoe MDL2 Assets</FontFamily>
+    <FontFamily x:Key="TextFont">Segoe UI Variable Text, Segoe UI</FontFamily>
+
+    <!-- Colores -->
+    <SolidColorBrush x:Key="BarBackground" Color="#FF1C1C1C" />
+    <SolidColorBrush x:Key="BarBorder" Color="#FF2E2E2E" />
+    <SolidColorBrush x:Key="Foreground" Color="#FFFFFFFF" />
+    <SolidColorBrush x:Key="ForegroundSecondary" Color="#FFC5C5C5" />
+    <SolidColorBrush x:Key="HoverBackground" Color="#1AFFFFFF" />
+    <SolidColorBrush x:Key="PressedBackground" Color="#0FFFFFFF" />
+    <SolidColorBrush x:Key="ActiveBackground" Color="#14FFFFFF" />
+    <SolidColorBrush x:Key="Accent" Color="#FF4CC2FF" />
+    <SolidColorBrush x:Key="RunningIndicator" Color="#FF9A9A9A" />
+    <SolidColorBrush x:Key="FlashBackground" Color="#99C77A1E" />
+    <SolidColorBrush x:Key="MenuBackground" Color="#FF2C2C2C" />
+    <SolidColorBrush x:Key="MenuBorder" Color="#FF404040" />
+    <SolidColorBrush x:Key="ProgressNormal" Color="#FF6CCB5F" />
+    <SolidColorBrush x:Key="ProgressError" Color="#FFFF6B6B" />
+    <SolidColorBrush x:Key="ProgressPaused" Color="#FFFCE100" />
+    <SolidColorBrush x:Key="MicInUse" Color="#FF6CCB5F" />
+
+    <!-- Botón base de la barra: fondo transparente, hover/pressed redondeados -->
+    <Style x:Key="BarButton" TargetType="Button">
+        <Setter Property="Foreground" Value="{StaticResource Foreground}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="FontFamily" Value="{StaticResource TextFont}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="4"
+                            Padding="{TemplateBinding Padding}" SnapsToDevicePixels="True">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource HoverBackground}" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource PressedBackground}" />
+                            <Setter Property="Opacity" Value="0.85" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Botones cuadrados de la zona central (Inicio, Búsqueda, Vista de tareas, apps) -->
+    <Style x:Key="SquareBarButton" TargetType="Button" BasedOn="{StaticResource BarButton}">
+        <Setter Property="Width" Value="{StaticResource TaskButtonSize}" />
+        <Setter Property="Height" Value="40" />
+        <Setter Property="Margin" Value="2,0" />
+    </Style>
+
+    <!-- Glifo de Segoe Fluent Icons -->
+    <Style x:Key="Glyph" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource IconFont}" />
+        <Setter Property="FontSize" Value="16" />
+        <Setter Property="Foreground" Value="{StaticResource Foreground}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+    </Style>
+
+    <!-- Texto de la barra (reloj, idioma) -->
+    <Style x:Key="BarText" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource TextFont}" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Foreground" Value="{StaticResource Foreground}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <!-- ToolTip oscuro -->
+    <Style TargetType="ToolTip">
+        <Setter Property="Background" Value="{StaticResource MenuBackground}" />
+        <Setter Property="Foreground" Value="{StaticResource Foreground}" />
+        <Setter Property="BorderBrush" Value="{StaticResource MenuBorder}" />
+        <Setter Property="FontFamily" Value="{StaticResource TextFont}" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToolTip">
+                    <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="1" CornerRadius="4" Padding="8,5">
+                        <ContentPresenter />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Menús contextuales oscuros -->
+    <Style TargetType="ContextMenu">
+        <Setter Property="Foreground" Value="{StaticResource Foreground}" />
+        <Setter Property="FontFamily" Value="{StaticResource TextFont}" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="HasDropShadow" Value="False" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ContextMenu">
+                    <Border Background="{StaticResource MenuBackground}" BorderBrush="{StaticResource MenuBorder}"
+                            BorderThickness="1" CornerRadius="8" Padding="4" MinWidth="220">
+                        <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle" />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="MenuItem">
+        <Setter Property="Foreground" Value="{StaticResource Foreground}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="MenuItem">
+                    <Border x:Name="Bd" Background="Transparent" CornerRadius="4" Padding="10,7" Margin="0,1">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="24" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock x:Name="Check" Style="{StaticResource Glyph}" FontSize="12" Text="&#xE73E;"
+                                       Visibility="Collapsed" HorizontalAlignment="Left" />
+                            <ContentPresenter x:Name="IconHost" ContentSource="Icon" Width="16" Height="16"
+                                              HorizontalAlignment="Left" VerticalAlignment="Center" />
+                            <ContentPresenter Grid.Column="1" ContentSource="Header" RecognizesAccessKey="True"
+                                              VerticalAlignment="Center" />
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsHighlighted" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource HoverBackground}" />
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Check" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.4" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="{x:Static MenuItem.SeparatorStyleKey}" TargetType="Separator">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Separator">
+                    <Border Height="1" Margin="-4,4" Background="{StaticResource MenuBorder}" />
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+
+</ResourceDictionary>
