@@ -29,6 +29,16 @@ namespace WindowsBar.Interop
         public static extern bool SetForegroundWindow(IntPtr hWnd);
 
         [DllImport("user32.dll")]
+        public static extern bool IsWindow(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
+        public static extern bool IsIconic(IntPtr hWnd);
+
+        /// <summary>true si la ventana está maximizada.</summary>
+        [DllImport("user32.dll")]
+        public static extern bool IsZoomed(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
         public static extern bool IsWindowVisible(IntPtr hWnd);
 
         [DllImport("user32.dll")]

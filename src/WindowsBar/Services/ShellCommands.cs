@@ -55,7 +55,7 @@ namespace WindowsBar.Services
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"No se pudo abrir {target}: {ex.Message}");
+                DiagLog.Write($"[Abrir] ERROR al abrir {target} {args}: {ex.Message}");
             }
         }
 

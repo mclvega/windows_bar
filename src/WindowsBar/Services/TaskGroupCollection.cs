@@ -38,7 +38,7 @@ namespace WindowsBar.Services
             _dispatcher = dispatcher;
 
             _windows = tasks.CreateGroupedWindowsCollection();
-            _windows.Filter = o => o is ApplicationWindow w && w.ShowInTaskbar && (_settings.Data.ShowTasksOnAllTaskbars || _isOnThisMonitor(w));
+            _windows.Filter = o => o is ApplicationWindow w && Interop.NativeMethods.IsWindow(w.Handle) && w.ShowInTaskbar && (_settings.Data.ShowTasksOnAllTaskbars || _isOnThisMonitor(w));
             _windows.CollectionChanged += OnWindowsChanged;
 
             _pins.Changed += OnExternalChange;

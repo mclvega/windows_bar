@@ -1,5 +1,6 @@
 using System;
 using System.Windows;
+using System.Windows.Threading;
 using ManagedShell.AppBar;
 using ManagedShell.Common.Helpers;
 using ManagedShell.Interop;
@@ -38,6 +39,11 @@ namespace WindowsBar.Views
             ApplySettings();
             services.Settings.Changed += Settings_Changed;
 
+            if (mode == AppBarMode.AutoHide)
+            {
+                _edgeWatcher = new DispatcherTimer(TimeSpan.FromMilliseconds(100), DispatcherPriority.Input, EdgeWatcher_Tick, Dispatcher);
+            }
+
             if (Screen.Primary && services.ShellManager.NotificationArea != null)
             {
                 services.ShellManager.NotificationArea.NotificationBalloonShown += NotificationArea_BalloonShown;
@@ -45,6 +51,52 @@ namespace WindowsBar.Views
         }
 
         public AppServices Services => _services;
+
+        #region Ocultar automáticamente
+        private readonly DispatcherTimer _edgeWatcher;
+        private bool _isAutoHidden;
+
+        /// <summary>
+        /// Respaldo para mostrar la barra: si el ratón está en el borde inferior de este monitor y la barra
+        /// está oculta, la subimos encima de todo y la mostramos (aunque otra ventana tape la franja de 2 px).
+        /// </summary>
+        private void EdgeWatcher_Tick(object sender, EventArgs e)
+        {
+            if (!_isAutoHidden || !Topmost || Handle == IntPtr.Zero) return;
+
+            var cursor = System.Windows.Forms.Cursor.Position;
+            var bounds = Screen.Bounds;
+            bool atBottomEdge = cursor.X >= bounds.Left && cursor.X < bounds.Right
+                                && cursor.Y >= bounds.Bottom - 2 && cursor.Y < bounds.Bottom;
+            if (!atBottomEdge) return;
+
+            WindowHelper.ShowWindowTopMost(Handle);
+            PeekDuringAutoHide(1500);
+        }
+
+        protected override void OnAutoHideAnimationComplete(bool isHiding)
+        {
+            base.OnAutoHideAnimationComplete(isHiding);
+            _isAutoHidden = isHiding;
+        }
+
+        /// <summary>
+        /// Una ventana MAXIMIZADA no es pantalla completa: sin espacio reservado (ocultar automáticamente),
+        /// VS Code o Chrome maximizados ocupan exactamente la pantalla y ManagedShell los confundía con
+        /// un juego o un vídeo, mandando la barra al fondo y dejándola sin poder aparecer.
+        /// </summary>
+        protected override void OnFullScreenEnter(FullScreenApp app)
+        {
+            if (Interop.NativeMethods.IsZoomed(app.hWnd))
+            {
+                DiagLog.Write($"[Auto-ocultar] {Screen.DeviceName}: '{app.title}' está maximizada, no es pantalla completa → la barra sigue disponible");
+                return;
+            }
+
+            DiagLog.Write($"[Auto-ocultar] {Screen.DeviceName}: pantalla completa '{app.title}' → la barra cede");
+            base.OnFullScreenEnter(app);
+        }
+        #endregion
 
         /// <summary>Indica si la ventana pertenece al monitor de esta barra.</summary>
         private bool ShowsWindowOnThisMonitor(ApplicationWindow window)
@@ -124,6 +176,7 @@ namespace WindowsBar.Views
             if (!AllowClose) return;
 
             TaskGroups.Dispose();
+            _edgeWatcher?.Stop();
             _services.Settings.Changed -= Settings_Changed;
             if (_services.ShellManager.NotificationArea != null)
             {

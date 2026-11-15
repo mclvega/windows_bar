@@ -89,13 +89,16 @@ namespace WindowsBar.Controls
         {
             if (_group == null) return;
 
-            if (!_group.IsRunning || (Keyboard.Modifiers & ModifierKeys.Shift) != 0)
+            // Solo cuentan ventanas que siguen existiendo y se pueden mostrar: al cerrar una app a veces
+            // queda registrada una ventana fantasma y la barra intentaba "traerla al frente" en vez de abrir la app.
+            var windows = _group.Windows.Where(IsRealWindow).ToList();
+            DiagLog.Write($"[Clic] '{_group.Name}' ventanas={_group.Windows.Count} reales={windows.Count} anclada={_group.IsPinned}");
+
+            if (windows.Count == 0 || (Keyboard.Modifiers & ModifierKeys.Shift) != 0)
             {
                 Launch();
                 return;
             }
-
-            var windows = _group.Windows.ToList();
 
             if (windows.Count == 1)
             {
@@ -150,11 +153,20 @@ namespace WindowsBar.Controls
             picker.IsOpen = true;
         }
 
+        private static bool IsRealWindow(ApplicationWindow w) =>
+            Interop.NativeMethods.IsWindow(w.Handle)
+            && (Interop.NativeMethods.IsWindowVisible(w.Handle) || Interop.NativeMethods.IsIconic(w.Handle));
+
         private void Launch()
         {
             string path = _group?.LaunchPath;
-            if (string.IsNullOrEmpty(path)) return;
+            if (string.IsNullOrEmpty(path))
+            {
+                DiagLog.Write($"[Abrir] '{_group?.Name}' sin ruta para abrir");
+                return;
+            }
 
+            DiagLog.Write($"[Abrir] '{_group.Name}' → {path}");
             if (path.StartsWith("shell:", StringComparison.OrdinalIgnoreCase))
                 ShellCommands.Open("explorer.exe", path);
             else
