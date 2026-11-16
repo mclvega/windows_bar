@@ -160,6 +160,9 @@ namespace WindowsBar.Views
             base.OnSourceInitialized(sender, e);
             UseLayoutRounding = DpiScale % 1 == 0;
             if (Screen.Primary) SetTrayHost();
+
+            // Como la barra de Windows: sigue visible mientras se muestra una ventana con "peek" desde las vistas previas.
+            WindowHelper.ExcludeWindowFromPeek(Handle);
         }
 
         protected override IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
