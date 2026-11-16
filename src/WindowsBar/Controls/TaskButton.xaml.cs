@@ -106,16 +106,27 @@ namespace WindowsBar.Controls
             {
                 Preview?.Close();
                 var w = windows[0];
+
+                // En otra pantalla: se trae a la de esta barra (sin minimizarla aunque fuera la activa).
+                if (!LaunchPlacer.IsOnScreen(w.Handle, Host))
+                {
+                    LaunchPlacer.MoveToScreen(w.Handle, Host, _group.Name);
+                    w.BringToFront();
+                    return;
+                }
+
                 if (_wasActiveOnPress && w.CanMinimize) w.Minimize();
                 else w.BringToFront();
                 return;
             }
 
-            // Ctrl+clic: ir rotando entre las ventanas de la app.
+            // Ctrl+clic: ir rotando entre las ventanas de la app (la elegida se trae a esta pantalla).
             if ((Keyboard.Modifiers & ModifierKeys.Control) != 0)
             {
                 int active = windows.FindIndex(w => w.State == ApplicationWindow.WindowState.Active);
-                windows[(active + 1) % windows.Count].BringToFront();
+                var next = windows[(active + 1) % windows.Count];
+                LaunchPlacer.MoveToScreen(next.Handle, Host, _group.Name);
+                next.BringToFront();
                 return;
             }
 

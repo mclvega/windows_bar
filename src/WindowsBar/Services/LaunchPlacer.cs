@@ -108,41 +108,78 @@ namespace WindowsBar.Services
 
                     // Algunas apps se recolocan al terminar de cargar: se comprueba otra vez al cabo de un momento.
                     var recheck = new DispatcherTimer(TimeSpan.FromMilliseconds(RecheckMs), DispatcherPriority.Background,
-                        (s, _) => { ((DispatcherTimer)s).Stop(); MoveToTarget(hwnd, expectation); }, _poll.Dispatcher);
+                        (s, _) => { ((DispatcherTimer)s).Stop(); MoveToTarget(hwnd, expectation, log: false); }, _poll.Dispatcher);
                     recheck.Start();
                 }
             }
         }
 
+        private static void MoveToTarget(IntPtr hwnd, Expectation e, bool log = true) =>
+            MoveToScreen(hwnd, e.TargetBounds, e.TargetWorkArea, e.TargetName, e.Name, "[Abrir]", log);
+
+        /// <summary>Lleva una ventana ya abierta a la pantalla de la barra pulsada (si está en otra).</summary>
+        public static void MoveToScreen(IntPtr hwnd, TaskbarWindow host, string appName)
+        {
+            if (host == null) return;
+            MoveToScreen(hwnd, host.Screen.Bounds, host.Screen.WorkingArea, host.Screen.DeviceName, appName, "[Traer]", false);
+        }
+
+        /// <summary>true si la ventana (o, minimizada, su posición al restaurarla) está en la pantalla de esa barra.</summary>
+        public static bool IsOnScreen(IntPtr hwnd, TaskbarWindow host) =>
+            host == null || SourceScreen(hwnd, out _)?.Bounds.Equals(host.Screen.Bounds) != false;
+
+        /// <summary>Pantalla de la ventana; si está minimizada, la de su posición normal (donde aparecerá al restaurarla).</summary>
+        private static System.Windows.Forms.Screen SourceScreen(IntPtr hwnd, out NativeMethods.WINDOWPLACEMENT placement)
+        {
+            placement = new NativeMethods.WINDOWPLACEMENT { length = Marshal.SizeOf<NativeMethods.WINDOWPLACEMENT>() };
+            if (!NativeMethods.IsWindow(hwnd) || !NativeMethods.GetWindowPlacement(hwnd, ref placement)) return null;
+
+            if (NativeMethods.IsIconic(hwnd))
+            {
+                var r = placement.rcNormalPosition;
+                return System.Windows.Forms.Screen.FromRectangle(Rectangle.FromLTRB(r.Left, r.Top, r.Right, r.Bottom));
+            }
+            return System.Windows.Forms.Screen.FromHandle(hwnd);
+        }
+
         /// <summary>
         /// Misma posición relativa dentro de la zona de trabajo del monitor de destino (reducida si no cabe).
-        /// Con Get/SetWindowPlacement se conserva el estado: una ventana maximizada queda maximizada allí.
+        /// Una ventana maximizada no cambia de monitor con SetWindowPlacement (comprobado): se restaura, se mueve
+        /// con SetWindowPos y se vuelve a maximizar allí. Una minimizada se restaura primero (el clic la trae al frente).
         /// </summary>
-        private static void MoveToTarget(IntPtr hwnd, Expectation e)
+        private static void MoveToScreen(IntPtr hwnd, Rectangle targetBounds, Rectangle targetWorkArea, string targetName,
+            string appName, string tag, bool logIfAlreadyThere)
         {
-            if (!NativeMethods.IsWindow(hwnd)) return;
+            var current = SourceScreen(hwnd, out _);
+            if (current == null) return;
+            if (current.Bounds.Equals(targetBounds))
+            {
+                if (logIfAlreadyThere) DiagLog.Write($"{tag} '{appName}' ventana ya en {targetName}");
+                return;
+            }
 
-            var current = System.Windows.Forms.Screen.FromHandle(hwnd);
-            if (current.Bounds.Equals(e.TargetBounds)) return;
+            bool wasMinimized = NativeMethods.IsIconic(hwnd);
+            if (wasMinimized) NativeMethods.ShowWindow(hwnd, NativeMethods.SW_RESTORE);
 
-            var placement = new NativeMethods.WINDOWPLACEMENT { length = Marshal.SizeOf<NativeMethods.WINDOWPLACEMENT>() };
-            if (!NativeMethods.GetWindowPlacement(hwnd, ref placement)) return;
-            if (placement.showCmd == NativeMethods.SW_SHOWMINIMIZED) return;
+            bool maximized = NativeMethods.IsZoomed(hwnd);
+            if (maximized) NativeMethods.ShowWindow(hwnd, NativeMethods.SW_RESTORE);
 
-            var source = current.WorkingArea;
-            var target = e.TargetWorkArea;
-            var normal = placement.rcNormalPosition;
-            int width = Math.Min(normal.Right - normal.Left, target.Width);
-            int height = Math.Min(normal.Bottom - normal.Top, target.Height);
-            int x = target.Left + Math.Clamp(normal.Left - source.Left, 0, target.Width - width);
-            int y = target.Top + Math.Clamp(normal.Top - source.Top, 0, target.Height - height);
+            // Ya en estado normal: su rectángulo real en pantalla.
+            NativeMethods.GetWindowRect(hwnd, out var rect);
+            var source = System.Windows.Forms.Screen.FromRectangle(Rectangle.FromLTRB(rect.Left, rect.Top, rect.Right, rect.Bottom)).WorkingArea;
+            int width = Math.Min(rect.Right - rect.Left, targetWorkArea.Width);
+            int height = Math.Min(rect.Bottom - rect.Top, targetWorkArea.Height);
+            int x = targetWorkArea.Left + Math.Clamp(rect.Left - source.Left, 0, targetWorkArea.Width - width);
+            int y = targetWorkArea.Top + Math.Clamp(rect.Top - source.Top, 0, targetWorkArea.Height - height);
 
-            placement.flags = 0;
-            placement.rcNormalPosition = new NativeMethods.RECT { Left = x, Top = y, Right = x + width, Bottom = y + height };
-            bool moved = NativeMethods.SetWindowPlacement(hwnd, ref placement);
+            NativeMethods.SetWindowPos(hwnd, IntPtr.Zero, x, y, width, height,
+                NativeMethods.SWP_NOZORDER | NativeMethods.SWP_NOACTIVATE);
+            if (maximized) NativeMethods.ShowWindow(hwnd, NativeMethods.SW_SHOWMAXIMIZED);
 
-            DiagLog.Write($"[Abrir] '{e.Name}' ventana en otro monitor ({current.DeviceName}) → movida a {e.TargetName} " +
-                          $"({x},{y},{width}x{height}) maximizada={placement.showCmd == 3} resultado={moved}");
+            string state = maximized ? "maximizada" : wasMinimized ? "minimizada → restaurada" : "normal";
+            string landed = System.Windows.Forms.Screen.FromHandle(hwnd).DeviceName;
+            DiagLog.Write($"{tag} '{appName}' ventana en otro monitor ({current.DeviceName}) → movida a {targetName} " +
+                          $"({x},{y},{width}x{height}) {state}, quedó en {landed}");
         }
 
         public void Dispose()

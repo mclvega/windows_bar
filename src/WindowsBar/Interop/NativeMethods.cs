@@ -101,6 +101,8 @@ namespace WindowsBar.Interop
         public static extern bool SetWindowPlacement(IntPtr hWnd, ref WINDOWPLACEMENT placement);
 
         public const int SW_SHOWMINIMIZED = 2;
+        public const int SW_SHOWMAXIMIZED = 3;
+        public const int SW_RESTORE = 9;
 
         [StructLayout(LayoutKind.Sequential)]
         public struct WINDOWPLACEMENT

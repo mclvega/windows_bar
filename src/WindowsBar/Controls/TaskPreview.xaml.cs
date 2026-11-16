@@ -265,7 +265,11 @@ namespace WindowsBar.Controls
         private void Card_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
             if ((sender as FrameworkElement)?.DataContext is not PreviewRow row) return;
+            var host = Host;
+            string appName = _group?.Name ?? row.Title; // Close() suelta el grupo
             Close();
+            // La ventana elegida se trae a la pantalla de esta barra.
+            LaunchPlacer.MoveToScreen(row.Handle, host, appName);
             row.Window.BringToFront();
         }
 
