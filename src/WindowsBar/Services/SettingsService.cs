@@ -35,6 +35,9 @@ namespace WindowsBar.Services
         /// <summary>true: apps centradas (Windows 11). false: alineadas a la izquierda.</summary>
         public bool CenterTasks { get; set; } = true;
 
+        /// <summary>true: los botones de la barra se reordenan arrastrándolos.</summary>
+        public bool DragToReorder { get; set; }
+
         // ---- Elementos de la barra ----
         public bool ShowWidgets { get; set; } = true;
         public bool ShowSearch { get; set; } = true;

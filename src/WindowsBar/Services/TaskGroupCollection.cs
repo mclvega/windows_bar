@@ -25,6 +25,8 @@ namespace WindowsBar.Services
         private readonly HashSet<ApplicationWindow> _watched = new();
         private readonly Dictionary<string, TaskGroup> _groups = new();
         private bool _refreshPending;
+        private bool _dragging;
+        private bool _refreshDeferred;
 
         public ObservableCollection<TaskGroup> Items { get; } = new();
 
@@ -83,9 +85,54 @@ namespace WindowsBar.Services
             _dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
             {
                 _refreshPending = false;
+                // Durante un arrastre, Refresh devolvería las ancladas a su orden guardado: se espera al soltar.
+                if (_dragging) { _refreshDeferred = true; return; }
                 Refresh();
             }));
         }
+
+        #region Reordenar arrastrando
+        /// <summary>Empieza a mover un botón con el ratón.</summary>
+        public void BeginDrag() => _dragging = true;
+
+        /// <summary>
+        /// Mueve en vivo el botón arrastrado. Las ancladas solo se mueven entre ancladas
+        /// y las abiertas no ancladas entre ellas.
+        /// </summary>
+        public void DragTo(TaskGroup group, int index)
+        {
+            int current = Items.IndexOf(group);
+            if (!_dragging || current < 0) return;
+
+            int pinnedCount = Items.Count(g => g.IsPinned);
+            int min = group.IsPinned ? 0 : pinnedCount;
+            int max = group.IsPinned ? pinnedCount - 1 : Items.Count - 1;
+            index = Math.Clamp(index, min, max);
+            if (index != current) Items.Move(current, index);
+        }
+
+        /// <summary>
+        /// Termina el arrastre. Las ancladas guardan su nueva posición (y se actualizan las demás barras);
+        /// las no ancladas conservan el orden de esta barra durante la sesión.
+        /// </summary>
+        public void EndDrag(TaskGroup group)
+        {
+            if (!_dragging) return;
+            _dragging = false;
+
+            if (group?.Pin != null)
+            {
+                int pinIndex = Items.Where(g => g.IsPinned).ToList().IndexOf(group);
+                if (pinIndex >= 0) _pins.Move(group.Pin, pinIndex);
+            }
+
+            if (_refreshDeferred)
+            {
+                _refreshDeferred = false;
+                ScheduleRefresh();
+            }
+        }
+        #endregion
 
         private void Refresh()
         {

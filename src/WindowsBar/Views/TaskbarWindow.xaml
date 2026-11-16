@@ -11,12 +11,9 @@
         <ContextMenu Opened="BarContextMenu_Opened">
             <MenuItem Header="Administrador de tareas" Click="TaskManager_Click" />
             <Separator />
-            <MenuItem x:Name="AllTaskbarsMenuItem" Header="Mostrar ventanas de todos los monitores"
-                      IsCheckable="True" Click="AllTaskbars_Click" />
+            <MenuItem x:Name="DragReorderMenuItem" Header="Cambiar el orden de las apps arrastrando"
+                      IsCheckable="True" Click="DragReorder_Click" />
             <MenuItem Header="Configuración de WindowsBar" Click="WindowsBarSettings_Click" />
-            <MenuItem Header="Configuración de la barra de tareas de Windows" Click="TaskbarSettings_Click" />
-            <Separator />
-            <MenuItem Header="Salir de WindowsBar" Click="Exit_Click" />
         </ContextMenu>
     </Window.ContextMenu>
 

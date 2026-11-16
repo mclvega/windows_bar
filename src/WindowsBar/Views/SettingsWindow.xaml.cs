@@ -201,8 +201,6 @@ namespace WindowsBar.Views
             public ImageSource Icon { get; init; }
             public string Name { get; init; }
             public string Path { get; init; }
-            public bool CanMoveUp { get; init; }
-            public bool CanMoveDown { get; init; }
         }
 
         private void Pins_Changed(object sender, EventArgs e) => LoadPins();
@@ -210,27 +208,14 @@ namespace WindowsBar.Views
         private void LoadPins()
         {
             var apps = _services.Pins.Apps.ToList();
-            PinList.ItemsSource = apps.Select((pin, i) => new PinRow
+            PinList.ItemsSource = apps.Select(pin => new PinRow
             {
                 Pin = pin,
                 Icon = ShellItemHelper.GetIcon(pin.LaunchPath, 32) ?? ShellItemHelper.GetIcon(pin.TargetPath, 32),
                 Name = pin.Name,
-                Path = pin.TargetPath ?? pin.LaunchPath,
-                CanMoveUp = i > 0,
-                CanMoveDown = i < apps.Count - 1
+                Path = pin.TargetPath ?? pin.LaunchPath
             }).ToList();
             PinsEmpty.Visibility = apps.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
-        }
-
-        private void PinUp_Click(object sender, RoutedEventArgs e) => MovePin(sender, -1);
-
-        private void PinDown_Click(object sender, RoutedEventArgs e) => MovePin(sender, +1);
-
-        private void MovePin(object sender, int delta)
-        {
-            if ((sender as FrameworkElement)?.DataContext is not PinRow row) return;
-            int index = _services.Pins.Apps.ToList().IndexOf(row.Pin);
-            if (index >= 0) _services.Pins.Move(row.Pin, index + delta);
         }
 
         private void PinRemove_Click(object sender, RoutedEventArgs e)

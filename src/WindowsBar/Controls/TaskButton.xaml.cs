@@ -210,7 +210,8 @@ namespace WindowsBar.Controls
                 Menu.Items.Add(pin);
             }
 
-            if (_group.IsPinned)
+            // Cambiar el orden solo está permitido con la opción de arrastrar activada.
+            if (_group.IsPinned && App.Services.Settings.Data.DragToReorder)
             {
                 int index = pins.Apps.ToList().IndexOf(_group.Pin);
                 if (index > 0)

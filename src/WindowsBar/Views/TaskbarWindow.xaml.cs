@@ -193,22 +193,18 @@ namespace WindowsBar.Views
         #region Menú contextual de la barra
         private void BarContextMenu_Opened(object sender, RoutedEventArgs e)
         {
-            AllTaskbarsMenuItem.IsChecked = _services.Settings.Data.ShowTasksOnAllTaskbars;
+            DragReorderMenuItem.IsChecked = _services.Settings.Data.DragToReorder;
         }
 
         private void TaskManager_Click(object sender, RoutedEventArgs e) => ShellCommands.TaskManager();
 
-        private void TaskbarSettings_Click(object sender, RoutedEventArgs e) => ShellCommands.TaskbarSettings();
-
         private void WindowsBarSettings_Click(object sender, RoutedEventArgs e) => SettingsWindow.Open(this);
 
-        private void AllTaskbars_Click(object sender, RoutedEventArgs e)
+        private void DragReorder_Click(object sender, RoutedEventArgs e)
         {
-            _services.Settings.Data.ShowTasksOnAllTaskbars = AllTaskbarsMenuItem.IsChecked;
+            _services.Settings.Data.DragToReorder = DragReorderMenuItem.IsChecked;
             _services.Settings.SaveAndNotify();
         }
-
-        private void Exit_Click(object sender, RoutedEventArgs e) => ((App)Application.Current).ExitGracefully();
         #endregion
     }
 }

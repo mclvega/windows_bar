@@ -175,7 +175,7 @@
                         <Button DockPanel.Dock="Right" Style="{StaticResource ActionButton}" Content="Volver a importar desde Windows"
                                 Click="PinsReimport_Click" />
                         <TextBlock Style="{StaticResource SettingSubtitle}" VerticalAlignment="Center" Margin="0,0,16,0"
-                                   Text="Ordena o quita las apps ancladas. Para anclar una app, clic derecho sobre ella en la barra." />
+                                   Text="Quita las apps ancladas. Para anclar una app, clic derecho sobre ella en la barra; para ordenarlas, activa «Cambiar el orden de las apps arrastrando» en el menú de la barra." TextWrapping="Wrap" />
                     </DockPanel>
                     <TextBlock x:Name="PinsEmpty" Style="{StaticResource SettingSubtitle}" Visibility="Collapsed"
                                Text="No hay apps ancladas." />
@@ -185,14 +185,6 @@
                                 <Border Style="{StaticResource SettingCard}" MinHeight="56">
                                     <DockPanel>
                                         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                                            <Button Style="{StaticResource BarButton}" Width="34" Height="32" ToolTip="Subir"
-                                                    Click="PinUp_Click" IsEnabled="{Binding CanMoveUp}">
-                                                <TextBlock Style="{StaticResource Glyph}" FontSize="14" Text="&#xE70E;" />
-                                            </Button>
-                                            <Button Style="{StaticResource BarButton}" Width="34" Height="32" ToolTip="Bajar"
-                                                    Click="PinDown_Click" IsEnabled="{Binding CanMoveDown}">
-                                                <TextBlock Style="{StaticResource Glyph}" FontSize="14" Text="&#xE70D;" />
-                                            </Button>
                                             <Button Style="{StaticResource BarButton}" Width="34" Height="32" ToolTip="Desanclar"
                                                     Click="PinRemove_Click">
                                                 <TextBlock Style="{StaticResource Glyph}" FontSize="14" Text="&#xE711;" />
