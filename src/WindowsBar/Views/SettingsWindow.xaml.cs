@@ -37,6 +37,7 @@ namespace WindowsBar.Views
             _services.Tray.Changed += Tray_Changed;
             _services.Pins.Changed += Pins_Changed;
 
+            VersionText.Text = App.Version;
             LoadToggles();
             LoadTray();
             LoadPins();

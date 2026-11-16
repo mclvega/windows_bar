@@ -19,8 +19,13 @@ namespace WindowsBar
 
         public static AppServices Services { get; private set; }
 
+        /// <summary>Versión de la app ("1.0.0"), tomada de &lt;Version&gt; del proyecto.</summary>
+        public static string Version => typeof(App).Assembly.GetName().Version.ToString(3);
+
         private void App_OnStartup(object sender, StartupEventArgs e)
         {
+            DiagLog.Write($"[Inicio] WindowsBar {Version}");
+
             AppDomain.CurrentDomain.UnhandledException += (_, args) =>
             {
                 DiagLog.Write($"[Error fatal] {args.ExceptionObject}");

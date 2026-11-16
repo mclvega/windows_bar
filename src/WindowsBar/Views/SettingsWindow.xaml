@@ -20,7 +20,10 @@
             <StackPanel Orientation="Horizontal" Margin="12,0,0,18">
                 <Image Source="pack://application:,,,/Resources/WindowsBar.ico" Width="24" Height="24"
                        RenderOptions.BitmapScalingMode="HighQuality" Margin="0,0,10,0" />
-                <TextBlock Style="{StaticResource BarText}" FontSize="14" FontWeight="SemiBold" Text="WindowsBar" />
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Style="{StaticResource BarText}" FontSize="14" FontWeight="SemiBold" Text="WindowsBar" />
+                    <TextBlock x:Name="VersionText" Style="{StaticResource SettingSubtitle}" />
+                </StackPanel>
             </StackPanel>
             <RadioButton x:Name="NavGeneral" Style="{StaticResource NavItem}" Tag="&#xE713;" Content="General"
                          IsChecked="True" Checked="Nav_Checked" />
