@@ -67,6 +67,21 @@ namespace WindowsBar.Interop
         [DllImport("user32.dll", CharSet = CharSet.Unicode)]
         public static extern int GetWindowText(IntPtr hWnd, StringBuilder text, int max);
 
+        /// <summary>
+        /// Ventana bajo un punto de la pantalla. A diferencia de EnumWindows/FindWindow, también encuentra
+        /// las ventanas de las bandas del shell (p. ej. la Configuración rápida de Windows 11).
+        /// </summary>
+        [DllImport("user32.dll")]
+        public static extern IntPtr WindowFromPoint(POINT point);
+
+        [DllImport("user32.dll")]
+        public static extern IntPtr GetAncestor(IntPtr hWnd, uint flags);
+
+        public const uint GA_ROOT = 2;
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct POINT { public int X, Y; }
+
         [DllImport("user32.dll")]
         public static extern IntPtr MonitorFromWindow(IntPtr hWnd, uint flags);
 

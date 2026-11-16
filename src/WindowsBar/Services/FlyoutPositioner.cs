@@ -70,7 +70,12 @@ namespace WindowsBar.Services
                     DiagLog.Write($"[{action}] {(isNew ? "nueva" : "movida")} {process}/{ClassName(hwnd)} '{Title(hwnd)}' " +
                                   $"rect=({rect.Left},{rect.Top},{rect.Right},{rect.Bottom}) monitor={(wrongMonitor ? "OTRO" : "correcto")}");
 
-                    if (!wrongMonitor || !ShellProcesses.Contains(process) || !FlyoutClasses.Contains(ClassName(hwnd))) continue;
+                    if (!wrongMonitor || !ShellProcesses.Contains(process)) continue;
+                    if (!FlyoutClasses.Contains(ClassName(hwnd)))
+                    {
+                        DiagLog.Write($"[{action}]   clase no reconocida como panel ({ClassName(hwnd)}): no se mueve");
+                        continue;
+                    }
 
                     // Misma posición relativa respecto al borde inferior-derecho/izquierdo del monitor de destino.
                     int width = rect.Right - rect.Left;
@@ -101,15 +106,48 @@ namespace WindowsBar.Services
             var list = new List<IntPtr>();
             NativeMethods.EnumWindows((hwnd, _) =>
             {
-                if (!NativeMethods.IsWindowVisible(hwnd)) return true;
-                NativeMethods.DwmGetWindowAttribute(hwnd, NativeMethods.DWMWA_CLOAKED, out int cloaked, sizeof(int));
-                if (cloaked != 0) return true;
-                NativeMethods.GetWindowRect(hwnd, out var r);
-                if (r.Right - r.Left < 50 || r.Bottom - r.Top < 50) return true;
-                list.Add(hwnd);
+                if (IsCandidate(hwnd)) list.Add(hwnd);
                 return true;
             }, IntPtr.Zero);
+
+            // EnumWindows no devuelve las ventanas de las bandas del shell (Configuración rápida...): se buscan por punto.
+            foreach (IntPtr hwnd in ProbedWindows())
+                if (!list.Contains(hwnd) && IsCandidate(hwnd)) list.Add(hwnd);
+
             return list;
+        }
+
+        private static bool IsCandidate(IntPtr hwnd)
+        {
+            if (!NativeMethods.IsWindowVisible(hwnd)) return false;
+            NativeMethods.DwmGetWindowAttribute(hwnd, NativeMethods.DWMWA_CLOAKED, out int cloaked, sizeof(int));
+            if (cloaked != 0) return false;
+            NativeMethods.GetWindowRect(hwnd, out var r);
+            return r.Right - r.Left >= 50 && r.Bottom - r.Top >= 50;
+        }
+
+        // Distancia al borde inferior de los puntos de sondeo: dentro de la zona donde aparecen los paneles.
+        private const int ProbeFromBottom = 250;
+        private const int ProbeFromSide = 150;
+
+        /// <summary>
+        /// Ventanas raíz bajo tres puntos de cada monitor, en la zona de los paneles: derecha (Configuración
+        /// rápida, notificaciones), centro (Inicio y Búsqueda centrados) e izquierda (Inicio a la izquierda, Widgets).
+        /// </summary>
+        private static IEnumerable<IntPtr> ProbedWindows()
+        {
+            var found = new HashSet<IntPtr>();
+            foreach (var screen in System.Windows.Forms.Screen.AllScreens)
+            {
+                var b = screen.Bounds;
+                int y = b.Bottom - ProbeFromBottom;
+                foreach (int x in new[] { b.Right - ProbeFromSide, b.Left + b.Width / 2, b.Left + ProbeFromSide })
+                {
+                    IntPtr hwnd = NativeMethods.GetAncestor(NativeMethods.WindowFromPoint(new NativeMethods.POINT { X = x, Y = y }), NativeMethods.GA_ROOT);
+                    if (hwnd != IntPtr.Zero) found.Add(hwnd);
+                }
+            }
+            return found;
         }
 
         private static string ProcessName(IntPtr hwnd)
