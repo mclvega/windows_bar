@@ -18,7 +18,8 @@
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
                         <Border x:Name="Card" CornerRadius="6" Padding="8,6,8,8" Margin="2" Background="Transparent"
-                                MouseLeftButtonUp="Card_MouseLeftButtonUp">
+                                MouseLeftButtonUp="Card_MouseLeftButtonUp"
+                                MouseEnter="Card_MouseEnter" MouseLeave="Card_MouseLeave">
                             <StackPanel Width="200">
                                 <DockPanel Height="24" Margin="0,0,0,6">
                                     <Button DockPanel.Dock="Right" Style="{StaticResource BarButton}" Width="24" Height="24"

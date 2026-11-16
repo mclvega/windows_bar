@@ -9,6 +9,7 @@ using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Threading;
+using ManagedShell.Common.Helpers;
 using ManagedShell.WindowsTasks;
 using WindowsBar.Interop;
 using WindowsBar.Services;
@@ -25,9 +26,14 @@ namespace WindowsBar.Controls
         private const int OpenDelayMs = 400;
         private const int CloseDelayMs = 300;
         private const double GapAboveButton = 10;
+        private const int PeekDelayMs = 400;
 
         private readonly DispatcherTimer _openTimer;
         private readonly DispatcherTimer _closeTimer;
+        private readonly DispatcherTimer _peekTimer;
+        private FrameworkElement _peekCard;
+        private IntPtr _peekedWindow;
+        private IntPtr _popupHandle;
         private FrameworkElement _pendingTarget;
         private TaskGroup _pendingGroup;
         private TaskGroup _group;
@@ -55,6 +61,13 @@ namespace WindowsBar.Controls
 
             _closeTimer = new DispatcherTimer(DispatcherPriority.Normal, Dispatcher) { Interval = TimeSpan.FromMilliseconds(CloseDelayMs) };
             _closeTimer.Tick += (_, _) => Close();
+
+            _peekTimer = new DispatcherTimer(DispatcherPriority.Normal, Dispatcher) { Interval = TimeSpan.FromMilliseconds(PeekDelayMs) };
+            _peekTimer.Tick += (_, _) =>
+            {
+                _peekTimer.Stop();
+                if (_peekCard?.IsMouseOver == true && _peekCard.DataContext is PreviewRow row) StartPeek(row);
+            };
 
             PreviewPopup.CustomPopupPlacementCallback = CenterAboveTarget;
         }
@@ -103,8 +116,45 @@ namespace WindowsBar.Controls
         {
             _openTimer.Stop();
             _closeTimer.Stop();
+            EndPeek();
             PreviewPopup.IsOpen = false;
         }
+        #endregion
+
+        #region Vista "peek" de la ventana
+        /// <summary>Muestra la ventana a tamaño real en el escritorio y difumina el resto, sin cambiar el foco.</summary>
+        private void StartPeek(PreviewRow row)
+        {
+            if (_popupHandle == IntPtr.Zero || _peekedWindow == row.Handle) return;
+            WindowHelper.PeekWindow(true, row.Handle, _popupHandle);
+            _peekedWindow = row.Handle;
+        }
+
+        private void EndPeek()
+        {
+            _peekTimer.Stop();
+            _peekCard = null;
+            if (_peekedWindow == IntPtr.Zero) return;
+            WindowHelper.PeekWindow(false, _peekedWindow, _popupHandle);
+            _peekedWindow = IntPtr.Zero;
+        }
+
+        private void Card_MouseEnter(object sender, MouseEventArgs e)
+        {
+            if (sender is not FrameworkElement { DataContext: PreviewRow row } card) return;
+            _peekCard = card;
+
+            // Con una vista ya activa se cambia al momento; si no, tras el retardo de Windows.
+            if (_peekedWindow != IntPtr.Zero)
+            {
+                StartPeek(row);
+                return;
+            }
+            _peekTimer.Stop();
+            _peekTimer.Start();
+        }
+
+        private void Card_MouseLeave(object sender, MouseEventArgs e) => _peekTimer.Stop();
         #endregion
 
         private void Show(FrameworkElement target, TaskGroup group)
@@ -183,8 +233,12 @@ namespace WindowsBar.Controls
             // Esquinas redondeadas de Windows 11 (el popup no admite transparencia para redondearlas en WPF).
             if (PresentationSource.FromVisual(PopupRoot) is HwndSource source)
             {
+                _popupHandle = source.Handle;
                 int round = NativeMethods.DWMWCP_ROUND;
                 NativeMethods.DwmSetWindowAttribute(source.Handle, NativeMethods.DWMWA_WINDOW_CORNER_PREFERENCE, ref round, sizeof(int));
+
+                // El panel sigue visible mientras se muestra una ventana con "peek".
+                WindowHelper.ExcludeWindowFromPeek(source.Handle);
             }
 
             Host?.PopupOpened();
@@ -192,6 +246,8 @@ namespace WindowsBar.Controls
 
         private void PreviewPopup_Closed(object sender, EventArgs e)
         {
+            EndPeek();
+            _popupHandle = IntPtr.Zero;
             Cards.ItemsSource = null; // descarga las miniaturas (DwmUnregisterThumbnail)
             DetachGroup();
             Host?.PopupClosed();
@@ -201,6 +257,7 @@ namespace WindowsBar.Controls
 
         private void PopupRoot_MouseLeave(object sender, MouseEventArgs e)
         {
+            EndPeek();
             _closeTimer.Stop();
             _closeTimer.Start();
         }
@@ -215,6 +272,7 @@ namespace WindowsBar.Controls
         private void CloseWindow_Click(object sender, RoutedEventArgs e)
         {
             if ((sender as FrameworkElement)?.DataContext is not PreviewRow row) return;
+            EndPeek();
             row.Window.Close();
 
             var rest = (Cards.ItemsSource as IEnumerable<PreviewRow>)?.Where(r => r != row).ToList();
