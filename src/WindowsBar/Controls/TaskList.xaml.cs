@@ -71,6 +71,7 @@ namespace WindowsBar.Controls
         private void StartDrag()
         {
             _dragging = true;
+            Host.TaskPreview.Close();
             Host.TaskGroups.BeginDrag();
             // Al capturar el ratón el botón deja de estar pulsado, así que no se dispara su Click.
             Items.CaptureMouse();

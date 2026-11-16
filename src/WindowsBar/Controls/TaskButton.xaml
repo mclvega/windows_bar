@@ -5,7 +5,9 @@
              Unloaded="TaskButton_Unloaded">
     <Button x:Name="AppButton"
             Style="{StaticResource SquareBarButton}"
-            ToolTip="{Binding ToolTip}"
+            ToolTip="{Binding ButtonToolTip}"
+            MouseEnter="AppButton_MouseEnter"
+            MouseLeave="AppButton_MouseLeave"
             PreviewMouseLeftButtonDown="AppButton_PreviewMouseLeftButtonDown"
             Click="AppButton_Click"
             MouseUp="AppButton_MouseUp"

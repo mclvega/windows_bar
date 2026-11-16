@@ -99,6 +99,9 @@ namespace WindowsBar.Services
             }
         }
 
+        /// <summary>Las apps abiertas ya muestran sus vistas previas: el tooltip queda solo para las ancladas cerradas.</summary>
+        public string ButtonToolTip => IsRunning ? null : ToolTip;
+
         /// <summary>Ventana con progreso (descargas, copias...), si alguna lo informa.</summary>
         private ApplicationWindow ProgressWindow => Windows.FirstOrDefault(w => w.ProgressState != TBPFLAG.TBPF_NOPROGRESS);
 
@@ -131,6 +134,7 @@ namespace WindowsBar.Services
             OnPropertyChanged(nameof(Name));
             OnPropertyChanged(nameof(Icon));
             OnPropertyChanged(nameof(ToolTip));
+            OnPropertyChanged(nameof(ButtonToolTip));
             OnPropertyChanged(nameof(HasProgress));
             OnPropertyChanged(nameof(IsProgressIndeterminate));
             OnPropertyChanged(nameof(ProgressValue));

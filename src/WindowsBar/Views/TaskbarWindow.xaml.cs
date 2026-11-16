@@ -74,6 +74,26 @@ namespace WindowsBar.Views
             PeekDuringAutoHide(1500);
         }
 
+        private int _openPopups;
+
+        /// <summary>
+        /// Un panel de la barra (p. ej. las vistas previas) se abrió: mientras haya alguno abierto la barra
+        /// no se oculta. ManagedShell solo conoce el menú contextual de la propia barra, no estos paneles.
+        /// </summary>
+        public void PopupOpened()
+        {
+            _openPopups++;
+            OnPropertyChanged(nameof(AllowAutoHide));
+        }
+
+        public void PopupClosed()
+        {
+            if (_openPopups > 0) _openPopups--;
+            OnPropertyChanged(nameof(AllowAutoHide));
+        }
+
+        protected override bool ShouldAllowAutoHide() => _openPopups == 0 && base.ShouldAllowAutoHide();
+
         protected override void OnAutoHideAnimationComplete(bool isHiding)
         {
             base.OnAutoHideAnimationComplete(isHiding);

@@ -35,6 +35,8 @@
                 <controls:SearchButton x:Name="SearchButton" />
                 <controls:TaskViewButton x:Name="TaskViewButton" />
                 <controls:TaskList x:Name="TaskList" />
+                <!-- Vistas previas de las ventanas (solo contiene un popup: no ocupa espacio) -->
+                <controls:TaskPreview x:Name="TaskPreview" />
             </StackPanel>
 
             <!-- Derecha: bandeja, iconos del sistema, reloj y Mostrar escritorio -->

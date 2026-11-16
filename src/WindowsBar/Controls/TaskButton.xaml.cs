@@ -97,12 +97,14 @@ namespace WindowsBar.Controls
 
             if (windows.Count == 0 || (Keyboard.Modifiers & ModifierKeys.Shift) != 0)
             {
+                Preview?.Close();
                 Launch();
                 return;
             }
 
             if (windows.Count == 1)
             {
+                Preview?.Close();
                 var w = windows[0];
                 if (_wasActiveOnPress && w.CanMinimize) w.Minimize();
                 else w.BringToFront();
@@ -117,7 +119,8 @@ namespace WindowsBar.Controls
                 return;
             }
 
-            ShowWindowPicker(windows);
+            // Varias ventanas: miniaturas para elegir cuál traer al frente.
+            Preview?.ShowNow(AppButton, _group);
         }
 
         private void AppButton_MouseUp(object sender, MouseButtonEventArgs e)
@@ -130,31 +133,19 @@ namespace WindowsBar.Controls
             }
         }
 
-        /// <summary>Lista de ventanas de la app cuando tiene varias abiertas.</summary>
-        private void ShowWindowPicker(List<ApplicationWindow> windows)
+        #region Vistas previas
+        private TaskPreview Preview => Host?.TaskPreview;
+
+        private void AppButton_MouseEnter(object sender, MouseEventArgs e)
         {
-            var picker = new ContextMenu
-            {
-                PlacementTarget = AppButton,
-                Placement = PlacementMode.Top
-            };
-
-            foreach (var w in windows)
-            {
-                var item = new MenuItem
-                {
-                    Header = string.IsNullOrWhiteSpace(w.Title) ? _group.Name : w.Title,
-                    Icon = new Image { Source = w.Icon, Width = 16, Height = 16 },
-                    FontWeight = w.State == ApplicationWindow.WindowState.Active ? FontWeights.SemiBold : FontWeights.Normal
-                };
-                item.Click += (_, _) => w.BringToFront();
-                picker.Items.Add(item);
-            }
-
-            picker.IsOpen = true;
+            if (_group?.IsRunning == true) Preview?.HoverEnter(AppButton, _group);
         }
 
-        private static bool IsRealWindow(ApplicationWindow w) =>
+        private void AppButton_MouseLeave(object sender, MouseEventArgs e) => Preview?.HoverLeave();
+        #endregion
+
+        /// <summary>Ventana que sigue existiendo y se puede mostrar (descarta ventanas fantasma ya cerradas).</summary>
+        internal static bool IsRealWindow(ApplicationWindow w) =>
             Interop.NativeMethods.IsWindow(w.Handle)
             && (Interop.NativeMethods.IsWindowVisible(w.Handle) || Interop.NativeMethods.IsIconic(w.Handle));
 
@@ -184,6 +175,7 @@ namespace WindowsBar.Controls
                 return;
             }
 
+            Preview?.Close();
             Menu.Items.Clear();
             Menu.Placement = PlacementMode.Top;
 

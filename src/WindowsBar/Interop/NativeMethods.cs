@@ -77,6 +77,41 @@ namespace WindowsBar.Interop
 
         public const int DWMWA_CLOAKED = 14;
 
+        // ---------- Miniaturas DWM (vistas previas de ventanas) ----------
+        [DllImport("dwmapi.dll")]
+        public static extern int DwmSetWindowAttribute(IntPtr hWnd, int attr, ref int value, int size);
+
+        public const int DWMWA_WINDOW_CORNER_PREFERENCE = 33;
+        public const int DWMWCP_ROUND = 2;
+
+        [DllImport("dwmapi.dll")]
+        public static extern int DwmRegisterThumbnail(IntPtr destination, IntPtr source, out IntPtr thumbnail);
+
+        [DllImport("dwmapi.dll")]
+        public static extern int DwmUnregisterThumbnail(IntPtr thumbnail);
+
+        [DllImport("dwmapi.dll")]
+        public static extern int DwmUpdateThumbnailProperties(IntPtr thumbnail, ref DWM_THUMBNAIL_PROPERTIES properties);
+
+        [DllImport("dwmapi.dll")]
+        public static extern int DwmQueryThumbnailSourceSize(IntPtr thumbnail, out SIZE size);
+
+        public const uint DWM_TNP_RECTDESTINATION = 0x01;
+        public const uint DWM_TNP_OPACITY = 0x04;
+        public const uint DWM_TNP_VISIBLE = 0x08;
+        public const uint DWM_TNP_SOURCECLIENTAREAONLY = 0x10;
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct DWM_THUMBNAIL_PROPERTIES
+        {
+            public uint dwFlags;
+            public RECT rcDestination;
+            public RECT rcSource;
+            public byte opacity;
+            [MarshalAs(UnmanagedType.Bool)] public bool fVisible;
+            [MarshalAs(UnmanagedType.Bool)] public bool fSourceClientAreaOnly;
+        }
+
         public const int SW_SHOWNA = 8;
 
         // ---------- Teclado ----------
