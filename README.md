@@ -44,6 +44,27 @@ El script:
 
 El mismo comando sirve para actualizar una instalación existente.
 
+### Instalador para otro PC
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\build-installer.ps1
+```
+
+Genera `dist\WindowsBar-Setup-<versión>.exe`, un único archivo que incluye el runtime de .NET: el otro PC no
+necesita instalar nada más. Requiere [Inno Setup 6](https://jrsoftware.org/isinfo.php) en el PC donde se
+genera (`winget install --id JRSoftware.InnoSetup -e --scope user`).
+
+El instalador:
+
+- Instala por usuario, sin permisos de administrador, en `%LOCALAPPDATA%\Programs\WindowsBar`.
+- Crea el acceso en el menú Inicio (y, si se marca, en el escritorio) y la registra para iniciarse con Windows.
+- Cierra limpiamente la instancia en marcha antes de actualizar.
+- Deja un desinstalador en *Configuración → Aplicaciones → Aplicaciones instaladas*, que también devuelve la
+  barra de Windows. La configuración del usuario (`%APPDATA%\WindowsBar`) se conserva.
+
+El `.exe` no está firmado: en el otro PC, SmartScreen mostrará un aviso; pulsa **Más información →
+Ejecutar de todas formas**.
+
 ## Desarrollo
 
 ```powershell
@@ -62,8 +83,12 @@ powershell -ExecutionPolicy Bypass -File .\tools\make-icon.ps1
 
 ## Uso
 
-- **Clic derecho en una zona vacía de la barra**: Administrador de tareas, ventanas de todos los monitores,
-  configuración de WindowsBar, configuración de la barra de Windows y salir.
+- **Clic derecho en una zona vacía de la barra**: Administrador de tareas, *Cambiar el orden de las apps
+  arrastrando* y Configuración de WindowsBar.
+- **Reordenar apps**: con *Cambiar el orden de las apps arrastrando* activado, arrastra los iconos de la barra
+  para moverlos (las ancladas guardan su orden).
+- **Vistas previas**: al pasar el ratón sobre una app abierta se muestran las miniaturas de sus ventanas; al
+  pasar sobre una miniatura se ve esa ventana en el escritorio y con clic se trae al frente.
 - **Configuración de WindowsBar**: secciones General, Elementos de la barra, Bandeja del sistema y Apps
   ancladas. Las apps ancladas de la barra de Windows se importan la primera vez y se pueden volver a importar
   desde ahí.
@@ -82,7 +107,7 @@ powershell -ExecutionPolicy Bypass -File .\tools\make-icon.ps1
 | -------------------------------------------- | ------------------------------------------------ |
 | `%APPDATA%\WindowsBar\settings.json`         | Configuración, apps ancladas y visibilidad de la bandeja. |
 | `%LOCALAPPDATA%\WindowsBar\diag.log`         | Registro de diagnóstico (se recorta al pasar de 1 MB). |
-| `%LOCALAPPDATA%\Programs\WindowsBar\`        | Instalación creada por `publish.ps1`.            |
+| `%LOCALAPPDATA%\Programs\WindowsBar\`        | Instalación creada por `publish.ps1` o por el instalador. |
 
 ## Solución de problemas
 
