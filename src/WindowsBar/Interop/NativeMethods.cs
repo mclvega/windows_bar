@@ -95,6 +95,54 @@ namespace WindowsBar.Interop
         public struct POINT { public int X, Y; }
 
         [DllImport("user32.dll")]
+        public static extern bool GetWindowPlacement(IntPtr hWnd, ref WINDOWPLACEMENT placement);
+
+        [DllImport("user32.dll")]
+        public static extern bool SetWindowPlacement(IntPtr hWnd, ref WINDOWPLACEMENT placement);
+
+        public const int SW_SHOWMINIMIZED = 2;
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct WINDOWPLACEMENT
+        {
+            public int length;
+            public int flags;
+            public int showCmd;
+            public POINT ptMinPosition;
+            public POINT ptMaxPosition;
+            public RECT rcNormalPosition;
+        }
+
+        // ---------- Abrir apps en un monitor concreto ----------
+        [DllImport("shell32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        public static extern bool ShellExecuteEx(ref SHELLEXECUTEINFO info);
+
+        public const uint SEE_MASK_FLAG_NO_UI = 0x00000400;
+        public const uint SEE_MASK_HMONITOR = 0x00200000;
+        public const int SW_SHOWNORMAL = 1;
+
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+        public struct SHELLEXECUTEINFO
+        {
+            public int cbSize;
+            public uint fMask;
+            public IntPtr hwnd;
+            public string lpVerb;
+            public string lpFile;
+            public string lpParameters;
+            public string lpDirectory;
+            public int nShow;
+            public IntPtr hInstApp;
+            public IntPtr lpIDList;
+            public string lpClass;
+            public IntPtr hkeyClass;
+            public uint dwHotKey;
+            /// <summary>hIcon o, con SEE_MASK_HMONITOR, el monitor donde debe abrirse la app.</summary>
+            public IntPtr hIconOrMonitor;
+            public IntPtr hProcess;
+        }
+
+        [DllImport("user32.dll")]
         public static extern IntPtr MonitorFromWindow(IntPtr hWnd, uint flags);
 
         public const uint MONITOR_DEFAULTTONEAREST = 2;

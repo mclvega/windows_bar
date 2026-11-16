@@ -220,7 +220,7 @@ namespace WindowsBar.Services
 
         private static string PinKey(PinnedApp pin) => "pin:" + (pin.LaunchPath ?? pin.TargetPath ?? pin.Aumid).ToLowerInvariant();
 
-        private static string WindowKey(ApplicationWindow w)
+        internal static string WindowKey(ApplicationWindow w)
         {
             string aumid = Interop.AppIdentity.GetAumid(w), path = null;
             if (!string.IsNullOrEmpty(aumid)) return "aumid:" + aumid.ToLowerInvariant();

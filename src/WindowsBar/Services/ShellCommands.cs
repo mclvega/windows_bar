@@ -47,6 +47,35 @@ namespace WindowsBar.Services
         public static void LanguageSettings() => Open("ms-settings:regionlanguage");
         public static void VolumeMixer() => Open("ms-settings:apps-volume");
 
+        /// <summary>
+        /// Abre una app pidiendo a Windows que la muestre en el monitor de la barra pulsada (como la barra nativa).
+        /// Las apps que restauran su posición guardada lo ignoran: de esas se encarga <see cref="LaunchPlacer"/>.
+        /// </summary>
+        public static void Launch(string path, TaskbarWindow host)
+        {
+            // Las apps empaquetadas ("shell:AppsFolder\AUMID") se abren a través de Explorer.
+            bool viaExplorer = path.StartsWith("shell:", StringComparison.OrdinalIgnoreCase);
+            try
+            {
+                GrantForegroundToLaunchedApps();
+                var info = new NativeMethods.SHELLEXECUTEINFO
+                {
+                    cbSize = Marshal.SizeOf<NativeMethods.SHELLEXECUTEINFO>(),
+                    fMask = NativeMethods.SEE_MASK_FLAG_NO_UI | (host != null ? NativeMethods.SEE_MASK_HMONITOR : 0),
+                    lpFile = viaExplorer ? "explorer.exe" : path,
+                    lpParameters = viaExplorer ? path : null,
+                    nShow = NativeMethods.SW_SHOWNORMAL,
+                    hIconOrMonitor = host?.Screen.HMonitor ?? IntPtr.Zero
+                };
+                if (!NativeMethods.ShellExecuteEx(ref info))
+                    DiagLog.Write($"[Abrir] ERROR al abrir {path}: código {Marshal.GetLastWin32Error()}");
+            }
+            catch (Exception ex)
+            {
+                DiagLog.Write($"[Abrir] ERROR al abrir {path}: {ex.Message}");
+            }
+        }
+
         public static void Open(string target, string args = "")
         {
             try

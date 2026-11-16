@@ -18,6 +18,7 @@ namespace WindowsBar.Services
         public MicUsageService Microphone { get; }
         public ClockService Clock { get; }
         public WindowManager WindowManager { get; }
+        public LaunchPlacer LaunchPlacer { get; }
 
         public AppServices(ShellManager shellManager, SettingsService settings)
         {
@@ -34,10 +35,12 @@ namespace WindowsBar.Services
             Microphone = new MicUsageService(dispatcher);
             Clock = new ClockService(dispatcher, settings);
             WindowManager = new WindowManager(this);
+            LaunchPlacer = new LaunchPlacer(shellManager.Tasks, dispatcher);
         }
 
         public void Dispose()
         {
+            LaunchPlacer.Dispose();
             WindowManager.Dispose();
             Tray.Dispose();
             Audio.Dispose();

@@ -158,11 +158,10 @@ namespace WindowsBar.Controls
                 return;
             }
 
-            DiagLog.Write($"[Abrir] '{_group.Name}' → {path}");
-            if (path.StartsWith("shell:", StringComparison.OrdinalIgnoreCase))
-                ShellCommands.Open("explorer.exe", path);
-            else
-                ShellCommands.Open(path);
+            DiagLog.Write($"[Abrir] '{_group.Name}' → {path} (monitor {Host?.Screen.DeviceName})");
+            // La app se abre en el monitor de esta barra; si aparece en otro, LaunchPlacer la trae.
+            App.Services.LaunchPlacer.Expect(_group, Host);
+            ShellCommands.Launch(path, Host);
         }
         #endregion
 
