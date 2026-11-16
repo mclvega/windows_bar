@@ -21,7 +21,11 @@ namespace WindowsBar
 
         private void App_OnStartup(object sender, StartupEventArgs e)
         {
-            AppDomain.CurrentDomain.UnhandledException += (_, _) => RestoreNativeTaskbar();
+            AppDomain.CurrentDomain.UnhandledException += (_, args) =>
+            {
+                DiagLog.Write($"[Error fatal] {args.ExceptionObject}");
+                RestoreNativeTaskbar();
+            };
 
             var settings = SettingsService.Load();
             var shellManager = CreateShellManager();
@@ -60,7 +64,7 @@ namespace WindowsBar
         {
             // Un fallo puntual (p. ej. un icono corrupto) no debe tumbar la barra.
             e.Handled = true;
-            System.Diagnostics.Debug.WriteLine(e.Exception);
+            DiagLog.Write($"[Error] {e.Exception}");
         }
 
         private static ShellManager CreateShellManager()
