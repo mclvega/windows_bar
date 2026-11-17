@@ -153,6 +153,7 @@ namespace WindowsBar.Services
             foreach (var w in windows)
             {
                 var pin = _pins.FindMatch(w);
+                if (pin != null) _pins.RememberProfile(pin, w);
                 string key = pin != null ? PinKey(pin) : WindowKey(w);
                 if (!byKey.TryGetValue(key, out var list))
                 {
@@ -218,10 +219,14 @@ namespace WindowsBar.Services
             return g;
         }
 
-        // Los argumentos distinguen anclajes del mismo ejecutable (dos perfiles de Chrome).
+        // Los argumentos distinguen anclajes del mismo ejecutable (dos perfiles de Chrome). Un .lnk ya es
+        // único: su clave no cambia cuando aprende el perfil (así el botón no se recrea).
         private static string PinKey(PinnedApp pin) =>
             "pin:" + (pin.LaunchPath ?? pin.TargetPath ?? pin.Aumid).ToLowerInvariant()
-            + (string.IsNullOrEmpty(pin.Arguments) ? "" : " " + pin.Arguments.ToLowerInvariant());
+            + (string.IsNullOrEmpty(pin.Arguments) || IsShortcut(pin.LaunchPath) ? "" : " " + pin.Arguments.ToLowerInvariant());
+
+        private static bool IsShortcut(string path) =>
+            path != null && path.EndsWith(".lnk", StringComparison.OrdinalIgnoreCase);
 
         internal static string WindowKey(ApplicationWindow w)
         {

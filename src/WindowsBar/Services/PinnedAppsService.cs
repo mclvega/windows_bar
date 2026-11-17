@@ -187,6 +187,29 @@ namespace WindowsBar.Services
             Commit();
         }
 
+        /// <summary>
+        /// Un acceso sin perfil (p. ej. "Google Chrome.lnk", que Chrome abriría con el último perfil usado)
+        /// aprende el perfil de su propia ventana: la que comparte su AUMID exacto y declara
+        /// "--profile-directory=..." en su comando de relanzamiento. Desde entonces se abre con ese perfil.
+        /// </summary>
+        public void RememberProfile(PinnedApp pin, ApplicationWindow window)
+        {
+            if (!string.IsNullOrEmpty(pin.Arguments) || string.IsNullOrEmpty(pin.Aumid) || AppIdentity.IsPackaged(pin.Aumid)) return;
+            if (!string.Equals(pin.Aumid, AppIdentity.GetAumid(window), StringComparison.OrdinalIgnoreCase)) return;
+
+            var relaunch = AppIdentity.GetRelaunchInfo(window);
+            if (relaunch?.Arguments == null
+                || relaunch.Arguments.IndexOf("--profile-directory", StringComparison.OrdinalIgnoreCase) < 0
+                || string.IsNullOrEmpty(pin.TargetPath)
+                || !SameApp(pin.TargetPath, relaunch.File))
+                return;
+
+            pin.Arguments = relaunch.Arguments;
+            pin.IconPath ??= relaunch.IconPath;
+            DiagLog.Write($"[Anclar] '{pin.Name}' recuerda su perfil: {pin.Arguments}");
+            Commit();
+        }
+
         public void Unpin(PinnedApp pin)
         {
             if (_settings.Data.PinnedApps.Remove(pin)) Commit();

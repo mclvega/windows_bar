@@ -1,3 +1,4 @@
+using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows.Media;
@@ -117,7 +118,13 @@ namespace WindowsBar.Services
         {
             get
             {
-                if (Pin != null) return Pin.LaunchPath;
+                if (Pin != null)
+                {
+                    // Windows ignora los parámetros al abrir un .lnk: con perfil, se abre su ejecutable.
+                    bool shortcutWithProfile = !string.IsNullOrEmpty(Pin.Arguments) && !string.IsNullOrEmpty(Pin.TargetPath)
+                        && Pin.LaunchPath?.EndsWith(".lnk", StringComparison.OrdinalIgnoreCase) == true;
+                    return shortcutWithProfile ? Pin.TargetPath : Pin.LaunchPath;
+                }
                 var w = Windows.FirstOrDefault();
                 if (w == null) return null;
                 if (PackagedAumid != null) return Interop.AppIdentity.AppsFolderPath(PackagedAumid);
