@@ -84,7 +84,8 @@ namespace WindowsBar.Services
                 var window = Windows.FirstOrDefault(w => w.Icon != null);
                 if (window != null) return window.Icon;
                 if (Pin == null) return null;
-                return _pinnedIcon ??= Interop.ShellItemHelper.GetIcon(Pin.LaunchPath, 32)
+                return _pinnedIcon ??= Interop.ShellItemHelper.GetIcon(Pin.IconPath, 32)
+                                       ?? Interop.ShellItemHelper.GetIcon(Pin.LaunchPath, 32)
                                        ?? Interop.ShellItemHelper.GetIcon(Pin.TargetPath, 32);
             }
         }
@@ -121,7 +122,29 @@ namespace WindowsBar.Services
                 if (w == null) return null;
                 if (PackagedAumid != null) return Interop.AppIdentity.AppsFolderPath(PackagedAumid);
                 if (w.IsUWP && !string.IsNullOrEmpty(w.AppUserModelID)) return Interop.AppIdentity.AppsFolderPath(w.AppUserModelID);
-                return w.WinFileName;
+                return UnpinnedRelaunch?.File ?? w.WinFileName;
+            }
+        }
+
+        /// <summary>Argumentos para <see cref="LaunchPath"/> (p. ej. el perfil de Chrome), o null.</summary>
+        public string LaunchArguments
+        {
+            get
+            {
+                if (Pin != null) return Pin.Arguments;
+                var w = Windows.FirstOrDefault();
+                if (w == null || PackagedAumid != null || w.IsUWP) return null;
+                return UnpinnedRelaunch?.Arguments;
+            }
+        }
+
+        /// <summary>Comando de relanzamiento de la primera ventana (sin anclar): abre la misma variante (perfil).</summary>
+        private Interop.RelaunchInfo UnpinnedRelaunch
+        {
+            get
+            {
+                var w = Windows.FirstOrDefault();
+                return w == null ? null : Interop.AppIdentity.GetRelaunchInfo(w);
             }
         }
 

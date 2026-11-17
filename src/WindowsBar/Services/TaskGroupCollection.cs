@@ -218,7 +218,10 @@ namespace WindowsBar.Services
             return g;
         }
 
-        private static string PinKey(PinnedApp pin) => "pin:" + (pin.LaunchPath ?? pin.TargetPath ?? pin.Aumid).ToLowerInvariant();
+        // Los argumentos distinguen anclajes del mismo ejecutable (dos perfiles de Chrome).
+        private static string PinKey(PinnedApp pin) =>
+            "pin:" + (pin.LaunchPath ?? pin.TargetPath ?? pin.Aumid).ToLowerInvariant()
+            + (string.IsNullOrEmpty(pin.Arguments) ? "" : " " + pin.Arguments.ToLowerInvariant());
 
         internal static string WindowKey(ApplicationWindow w)
         {

@@ -169,10 +169,11 @@ namespace WindowsBar.Controls
                 return;
             }
 
-            DiagLog.Write($"[Abrir] '{_group.Name}' → {path} (monitor {Host?.Screen.DeviceName})");
+            string args = _group.LaunchArguments;
+            DiagLog.Write($"[Abrir] '{_group.Name}' → {path} {args} (monitor {Host?.Screen.DeviceName})");
             // La app se abre en el monitor de esta barra; si aparece en otro, LaunchPlacer la trae.
             App.Services.LaunchPlacer.Expect(_group, Host);
-            ShellCommands.Launch(path, Host);
+            ShellCommands.Launch(path, args, Host);
         }
         #endregion
 

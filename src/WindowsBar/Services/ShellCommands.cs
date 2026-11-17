@@ -51,7 +51,7 @@ namespace WindowsBar.Services
         /// Abre una app pidiendo a Windows que la muestre en el monitor de la barra pulsada (como la barra nativa).
         /// Las apps que restauran su posición guardada lo ignoran: de esas se encarga <see cref="LaunchPlacer"/>.
         /// </summary>
-        public static void Launch(string path, TaskbarWindow host)
+        public static void Launch(string path, string args, TaskbarWindow host)
         {
             // Las apps empaquetadas ("shell:AppsFolder\AUMID") se abren a través de Explorer.
             bool viaExplorer = path.StartsWith("shell:", StringComparison.OrdinalIgnoreCase);
@@ -63,7 +63,7 @@ namespace WindowsBar.Services
                     cbSize = Marshal.SizeOf<NativeMethods.SHELLEXECUTEINFO>(),
                     fMask = NativeMethods.SEE_MASK_FLAG_NO_UI | (host != null ? NativeMethods.SEE_MASK_HMONITOR : 0),
                     lpFile = viaExplorer ? "explorer.exe" : path,
-                    lpParameters = viaExplorer ? path : null,
+                    lpParameters = viaExplorer ? path : args,
                     nShow = NativeMethods.SW_SHOWNORMAL,
                     hIconOrMonitor = host?.Screen.HMonitor ?? IntPtr.Zero
                 };

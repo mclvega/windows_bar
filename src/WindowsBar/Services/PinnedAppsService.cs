@@ -172,6 +172,17 @@ namespace WindowsBar.Services
                 Name = GetAppName(window)
             };
 
+            // La ventana declara cómo relanzarla (perfiles de Chrome: "--profile-directory=..."):
+            // se ancla eso, con su nombre e icono, como hace la barra de Windows.
+            var relaunch = launchByAumid ? null : AppIdentity.GetRelaunchInfo(window);
+            if (relaunch != null)
+            {
+                pin.LaunchPath = relaunch.File;
+                pin.Arguments = relaunch.Arguments;
+                pin.Name = relaunch.DisplayName;
+                pin.IconPath = relaunch.IconPath;
+            }
+
             _settings.Data.PinnedApps.Add(pin);
             Commit();
         }

@@ -212,7 +212,9 @@ namespace WindowsBar.Views
             PinList.ItemsSource = apps.Select(pin => new PinRow
             {
                 Pin = pin,
-                Icon = ShellItemHelper.GetIcon(pin.LaunchPath, 32) ?? ShellItemHelper.GetIcon(pin.TargetPath, 32),
+                Icon = ShellItemHelper.GetIcon(pin.IconPath, 32)
+                       ?? ShellItemHelper.GetIcon(pin.LaunchPath, 32)
+                       ?? ShellItemHelper.GetIcon(pin.TargetPath, 32),
                 Name = pin.Name,
                 Path = pin.TargetPath ?? pin.LaunchPath
             }).ToList();

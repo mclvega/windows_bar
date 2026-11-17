@@ -10,6 +10,12 @@ namespace WindowsBar.Services
         /// <summary>Lo que se ejecuta: ruta a .lnk, a .exe o "shell:AppsFolder\AUMID".</summary>
         public string LaunchPath { get; set; }
 
+        /// <summary>Argumentos con que se lanza <see cref="LaunchPath"/> (p. ej. "--profile-directory=Default"), o null.</summary>
+        public string Arguments { get; set; }
+
+        /// <summary>Icono propio del anclaje (p. ej. el .ico de un perfil de Chrome), o null.</summary>
+        public string IconPath { get; set; }
+
         /// <summary>Ejecutable al que apunta (para emparejar con ventanas abiertas).</summary>
         public string TargetPath { get; set; }
 
