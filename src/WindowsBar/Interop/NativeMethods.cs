@@ -79,6 +79,16 @@ namespace WindowsBar.Interop
         [DllImport("user32.dll", CharSet = CharSet.Unicode)]
         public static extern int GetWindowText(IntPtr hWnd, StringBuilder text, int max);
 
+        [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")]
+        public static extern IntPtr GetWindowLongPtr(IntPtr hWnd, int index);
+
+        public const int GWL_EXSTYLE = -20;
+        public const long WS_EX_TOPMOST = 0x00000008;
+        public const long WS_EX_TOOLWINDOW = 0x00000080;
+
+        /// <summary>Clase de ventana de los menús emergentes Win32 (TrackPopupMenu).</summary>
+        public const string MenuWindowClass = "#32768";
+
         /// <summary>
         /// Ventana bajo un punto de la pantalla. A diferencia de EnumWindows/FindWindow, también encuentra
         /// las ventanas de las bandas del shell (p. ej. la Configuración rápida de Windows 11).

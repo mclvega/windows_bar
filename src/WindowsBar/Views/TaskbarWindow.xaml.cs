@@ -94,6 +94,70 @@ namespace WindowsBar.Views
 
         protected override bool ShouldAllowAutoHide() => _openPopups == 0 && base.ShouldAllowAutoHide();
 
+        private DispatcherTimer _trayMenuTimer;
+        private uint _trayMenuProcessId;
+        private DateTime _trayMenuStart;
+
+        /// <summary>
+        /// Se hizo clic en un icono de bandeja: su app abre su propio menú o panel (otra ventana, de otro
+        /// proceso), y para ManagedShell eso es "el ratón salió de la barra". Como en Windows, la barra
+        /// sigue visible mientras ese menú esté abierto.
+        /// </summary>
+        public void HoldForTrayMenu(IntPtr iconHwnd)
+        {
+            if (AppBarMode != AppBarMode.AutoHide) return;
+
+            Interop.NativeMethods.GetWindowThreadProcessId(iconHwnd, out _trayMenuProcessId);
+            _trayMenuStart = DateTime.Now;
+
+            if (_trayMenuTimer != null) return; // ya retenida: solo se reinicia el plazo
+
+            PopupOpened();
+            DiagLog.Write($"[Bandeja] {Screen.DeviceName}: clic en icono (pid {_trayMenuProcessId}) → la barra se mantiene mientras su menú esté abierto");
+            _trayMenuTimer = new DispatcherTimer(TimeSpan.FromMilliseconds(200), DispatcherPriority.Background, TrayMenuTimer_Tick, Dispatcher);
+        }
+
+        private void TrayMenuTimer_Tick(object sender, EventArgs e)
+        {
+            var elapsed = DateTime.Now - _trayMenuStart;
+            if (elapsed < TimeSpan.FromMilliseconds(800)) return; // margen para que el menú llegue a aparecer
+
+            if (elapsed < TimeSpan.FromMinutes(2) && IsTrayMenuOpen()) return;
+
+            ReleaseTrayMenuHold();
+            DiagLog.Write($"[Bandeja] {Screen.DeviceName}: menú del icono cerrado → la barra puede ocultarse");
+        }
+
+        private void ReleaseTrayMenuHold()
+        {
+            if (_trayMenuTimer == null) return;
+            _trayMenuTimer.Stop();
+            _trayMenuTimer = null;
+            PopupClosed();
+        }
+
+        /// <summary>Hay un menú Win32 visible, o la app del icono tiene en primer plano una ventana emergente.</summary>
+        private bool IsTrayMenuOpen()
+        {
+            for (IntPtr menu = Interop.NativeMethods.FindWindowEx(IntPtr.Zero, IntPtr.Zero, Interop.NativeMethods.MenuWindowClass, null);
+                 menu != IntPtr.Zero;
+                 menu = Interop.NativeMethods.FindWindowEx(IntPtr.Zero, menu, Interop.NativeMethods.MenuWindowClass, null))
+            {
+                if (Interop.NativeMethods.IsWindowVisible(menu)) return true;
+            }
+
+            if (_trayMenuProcessId == 0) return false;
+
+            IntPtr foreground = Interop.NativeMethods.GetForegroundWindow();
+            if (foreground == IntPtr.Zero) return false;
+            Interop.NativeMethods.GetWindowThreadProcessId(foreground, out uint pid);
+            if (pid != _trayMenuProcessId) return false;
+
+            // Solo menús/paneles (ventanas de herramienta o siempre encima), no la ventana normal de la app.
+            long exStyle = Interop.NativeMethods.GetWindowLongPtr(foreground, Interop.NativeMethods.GWL_EXSTYLE).ToInt64();
+            return (exStyle & (Interop.NativeMethods.WS_EX_TOOLWINDOW | Interop.NativeMethods.WS_EX_TOPMOST)) != 0;
+        }
+
         protected override void OnAutoHideAnimationComplete(bool isHiding)
         {
             base.OnAutoHideAnimationComplete(isHiding);
@@ -200,6 +264,8 @@ namespace WindowsBar.Views
 
             TaskGroups.Dispose();
             _edgeWatcher?.Stop();
+            _trayMenuTimer?.Stop();
+            _trayMenuTimer = null;
             _services.Settings.Changed -= Settings_Changed;
             if (_services.ShellManager.NotificationArea != null)
             {

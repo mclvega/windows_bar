@@ -5,6 +5,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Threading;
 using ManagedShell.WindowsTray;
+using WindowsBar.Views;
 
 namespace WindowsBar.Controls
 {
@@ -44,6 +45,13 @@ namespace WindowsBar.Controls
         {
             OverflowPopup.IsOpen = !OverflowPopup.IsOpen;
         }
+
+        private TaskbarWindow Host => Window.GetWindow(this) as TaskbarWindow;
+
+        // El panel es otra ventana: mientras esté abierto, la barra no se oculta automáticamente.
+        private void OverflowPopup_Opened(object sender, EventArgs e) => Host?.PopupOpened();
+
+        private void OverflowPopup_Closed(object sender, EventArgs e) => Host?.PopupClosed();
 
         #region Globos de notificación
         /// <summary>Muestra el globo de una app de bandeja. Devuelve false si no se pudo.</summary>

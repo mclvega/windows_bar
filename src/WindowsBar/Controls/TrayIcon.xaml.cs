@@ -82,6 +82,9 @@ namespace WindowsBar.Controls
 
             model.IconMouseUp(e.ChangedButton, MouseHelper.GetCursorPositionParam(), DoubleClickTime);
 
+            // Con ocultar automáticamente, la barra no se esconde mientras el menú de la app esté abierto.
+            FindHost()?.HoldForTrayMenu(model.HWnd);
+
             // Al abrir la app o su menú, el panel de desbordamiento se cierra como en Windows.
             var popup = FindPopup();
             if (popup != null) popup.IsOpen = false;
@@ -134,6 +137,15 @@ namespace WindowsBar.Controls
 
             var menu = new ContextMenu { PlacementTarget = this, Placement = PlacementMode.Top };
             menu.Items.Add(item);
+
+            // ManagedShell solo conoce el menú contextual de la propia barra: este lo contamos nosotros.
+            var host = FindHost();
+            if (host != null)
+            {
+                menu.Opened += (_, _) => host.PopupOpened();
+                menu.Closed += (_, _) => host.PopupClosed();
+            }
+
             menu.IsOpen = true;
         }
     }

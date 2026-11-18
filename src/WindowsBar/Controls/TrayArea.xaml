@@ -11,7 +11,8 @@
         </Button>
 
         <Popup x:Name="OverflowPopup" PlacementTarget="{Binding ElementName=ChevronButton}" Placement="Top"
-               StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade" VerticalOffset="-10">
+               StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade" VerticalOffset="-10"
+               Opened="OverflowPopup_Opened" Closed="OverflowPopup_Closed">
             <Border Background="{StaticResource MenuBackground}" BorderBrush="{StaticResource MenuBorder}"
                     BorderThickness="1" CornerRadius="8" Padding="6">
                 <ItemsControl x:Name="OverflowItems" Focusable="False">
