@@ -86,33 +86,17 @@ namespace WindowsBar.Services
                     int y = target.Bottom - offsetFromBottom - height;
 
                     // Algunos paneles (Configuración rápida) son tan altos como el área de trabajo de su monitor,
-                    // con el contenido pegado abajo. Si el destino es más bajo, se ajusta la altura como haría
-                    // Windows; pegarlos arriba dejaría el contenido por debajo del monitor.
-                    int fitHeight = Math.Max(0, target.Height - offsetFromBottom);
-                    bool resize = height > fitHeight && fitHeight > 0;
-                    uint flags = NativeMethods.SWP_NOZORDER | NativeMethods.SWP_NOACTIVATE;
-                    if (resize) y = target.Top;
-                    else
-                    {
-                        y = Math.Clamp(y, target.Top, Math.Max(target.Top, target.Bottom - height));
-                        flags |= NativeMethods.SWP_NOSIZE;
-                    }
+                    // con el contenido pegado abajo. Si no caben en el destino se anclan abajo y sobresalen por
+                    // arriba (zona vacía): pegarlos arriba deja el contenido bajo el monitor, y redimensionarlos
+                    // no sirve porque el panel recorta su contenido según la altura con la que se creó.
+                    bool fits = height <= target.Height - offsetFromBottom;
+                    if (fits) y = Math.Clamp(y, target.Top, Math.Max(target.Top, target.Bottom - height));
 
-                    bool moved = NativeMethods.SetWindowPos(hwnd, IntPtr.Zero, x, y, width, resize ? fitHeight : height, flags);
+                    bool moved = NativeMethods.SetWindowPos(hwnd, IntPtr.Zero, x, y, 0, 0,
+                        NativeMethods.SWP_NOSIZE | NativeMethods.SWP_NOZORDER | NativeMethods.SWP_NOACTIVATE);
                     NativeMethods.GetWindowRect(hwnd, out var after);
-
-                    // Respaldo: si el shell no acepta el nuevo tamaño, se ancla abajo aunque sobresalga por arriba.
-                    if (resize && after.Bottom - after.Top != fitHeight)
-                    {
-                        y = target.Bottom - offsetFromBottom - (after.Bottom - after.Top);
-                        moved = NativeMethods.SetWindowPos(hwnd, IntPtr.Zero, x, y, 0, 0,
-                            NativeMethods.SWP_NOSIZE | NativeMethods.SWP_NOZORDER | NativeMethods.SWP_NOACTIVATE);
-                        NativeMethods.GetWindowRect(hwnd, out after);
-                        DiagLog.Write($"[{action}]   el panel no aceptó la altura {fitHeight}: se ancla abajo sin redimensionar");
-                    }
-
-                    DiagLog.Write($"[{action}]   movida a ({x},{y}){(resize ? $" alto {height}→{fitHeight}" : "")} resultado={moved} " +
-                                  $"rect final=({after.Left},{after.Top},{after.Right},{after.Bottom})");
+                    DiagLog.Write($"[{action}]   movida a ({x},{y}){(fits ? "" : " anclada abajo (más alta que el monitor)")} " +
+                                  $"resultado={moved} rect final=({after.Left},{after.Top},{after.Right},{after.Bottom})");
                 }
 
                 if (polls >= MaxPolls)
