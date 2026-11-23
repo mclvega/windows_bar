@@ -23,6 +23,7 @@ namespace WindowsBar.Services
 
         private readonly Tasks _tasks;
         private readonly SettingsService _settings;
+        private readonly LaunchPlacer _launchPlacer;
         private readonly DispatcherTimer _poll;
         private readonly HashSet<IntPtr> _known = new();
         private readonly List<Pending> _pending = new();
@@ -36,10 +37,11 @@ namespace WindowsBar.Services
             public DateTime Expires { get; set; }
         }
 
-        public NewWindowMaximizer(Tasks tasks, SettingsService settings, Dispatcher dispatcher)
+        public NewWindowMaximizer(Tasks tasks, SettingsService settings, LaunchPlacer launchPlacer, Dispatcher dispatcher)
         {
             _tasks = tasks;
             _settings = settings;
+            _launchPlacer = launchPlacer;
             _poll = new DispatcherTimer(TimeSpan.FromMilliseconds(PollMs), DispatcherPriority.Background, (_, _) => Poll(), dispatcher);
             _poll.Stop();
         }
@@ -81,6 +83,14 @@ namespace WindowsBar.Services
 
                 // Arrastrando (p. ej. una pestaña sacada de Chrome): se espera a que se suelte.
                 if (mouseDown)
+                {
+                    p.Expires = DateTime.Now.AddSeconds(WaitSeconds);
+                    continue;
+                }
+
+                // Abierta desde la barra de otro monitor: se espera a que LaunchPlacer la lleve allí,
+                // para maximizarla una sola vez y ya en la pantalla de destino.
+                if (_launchPlacer.IsPlacing(p.Window))
                 {
                     p.Expires = DateTime.Now.AddSeconds(WaitSeconds);
                     continue;

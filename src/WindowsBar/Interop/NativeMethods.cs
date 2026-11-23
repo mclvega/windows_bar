@@ -85,6 +85,22 @@ namespace WindowsBar.Interop
         public const int GWL_EXSTYLE = -20;
         public const long WS_EX_TOPMOST = 0x00000008;
         public const long WS_EX_TOOLWINDOW = 0x00000080;
+        [DllImport("user32.dll", EntryPoint = "SetWindowLongPtrW")]
+        public static extern IntPtr SetWindowLongPtr(IntPtr hWnd, int index, IntPtr value);
+
+        [DllImport("user32.dll")]
+        public static extern bool SetLayeredWindowAttributes(IntPtr hWnd, uint crKey, byte alpha, uint flags);
+
+        [DllImport("user32.dll")]
+        public static extern bool RedrawWindow(IntPtr hWnd, IntPtr rcUpdate, IntPtr hrgnUpdate, uint flags);
+
+        public const long WS_EX_LAYERED = 0x00080000;
+        public const uint LWA_ALPHA = 0x2;
+        public const uint RDW_INVALIDATE = 0x0001;
+        public const uint RDW_ERASE = 0x0004;
+        public const uint RDW_ALLCHILDREN = 0x0080;
+        public const uint RDW_FRAME = 0x0400;
+
         public const int GWL_STYLE = -16;
         public const long WS_MAXIMIZEBOX = 0x00010000;
         public const long WS_THICKFRAME = 0x00040000;

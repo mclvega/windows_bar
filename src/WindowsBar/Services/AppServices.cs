@@ -37,7 +37,7 @@ namespace WindowsBar.Services
             Clock = new ClockService(dispatcher, settings);
             WindowManager = new WindowManager(this);
             LaunchPlacer = new LaunchPlacer(shellManager.Tasks, dispatcher);
-            WindowMaximizer = new NewWindowMaximizer(shellManager.Tasks, settings, dispatcher);
+            WindowMaximizer = new NewWindowMaximizer(shellManager.Tasks, settings, LaunchPlacer, dispatcher);
         }
 
         public void Dispose()

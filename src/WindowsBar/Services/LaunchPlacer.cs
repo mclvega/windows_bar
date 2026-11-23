@@ -19,7 +19,8 @@ namespace WindowsBar.Services
     public class LaunchPlacer : IDisposable
     {
         private const int ExpectSeconds = 15;
-        private const int PollMs = 200;
+        // Rápido: cuanto antes se detecta la ventana, menos tiempo se ve en el monitor equivocado.
+        private const int PollMs = 50;
         private const int RecheckMs = 1000;
 
         private readonly Tasks _tasks;
@@ -73,6 +74,13 @@ namespace WindowsBar.Services
             });
             _poll.Start();
         }
+
+        /// <summary>
+        /// true si la ventana es de una app recién abierta desde una barra y aún no se ha llevado a su monitor
+        /// (el maximizador espera a que esté allí para maximizarla una sola vez, ya en la pantalla de destino).
+        /// </summary>
+        public bool IsPlacing(ApplicationWindow w) =>
+            _pending.Any(e => DateTime.Now <= e.Expires && !e.Seen.Contains(w.Handle) && SafeMatch(e.Matches)(w));
 
         private IEnumerable<ApplicationWindow> CurrentWindows() =>
             _windows?.Cast<object>().OfType<ApplicationWindow>().ToList() ?? new List<ApplicationWindow>();
@@ -159,27 +167,69 @@ namespace WindowsBar.Services
             }
 
             bool wasMinimized = NativeMethods.IsIconic(hwnd);
-            if (wasMinimized) NativeMethods.ShowWindow(hwnd, NativeMethods.SW_RESTORE);
+            bool maximized;
+            int x, y, width, height;
 
-            bool maximized = NativeMethods.IsZoomed(hwnd);
-            if (maximized) NativeMethods.ShowWindow(hwnd, NativeMethods.SW_RESTORE);
+            // Restaurar una ventana minimizada o maximizada se anima en el monitor de origen: mientras dura
+            // el cambio, la ventana se hace invisible y solo aparece ya colocada en la pantalla de destino.
+            using (wasMinimized || NativeMethods.IsZoomed(hwnd) ? HideWhileMoving(hwnd) : null)
+            {
+                if (wasMinimized) NativeMethods.ShowWindow(hwnd, NativeMethods.SW_RESTORE);
 
-            // Ya en estado normal: su rectángulo real en pantalla.
-            NativeMethods.GetWindowRect(hwnd, out var rect);
-            var source = System.Windows.Forms.Screen.FromRectangle(Rectangle.FromLTRB(rect.Left, rect.Top, rect.Right, rect.Bottom)).WorkingArea;
-            int width = Math.Min(rect.Right - rect.Left, targetWorkArea.Width);
-            int height = Math.Min(rect.Bottom - rect.Top, targetWorkArea.Height);
-            int x = targetWorkArea.Left + Math.Clamp(rect.Left - source.Left, 0, targetWorkArea.Width - width);
-            int y = targetWorkArea.Top + Math.Clamp(rect.Top - source.Top, 0, targetWorkArea.Height - height);
+                maximized = NativeMethods.IsZoomed(hwnd);
+                if (maximized) NativeMethods.ShowWindow(hwnd, NativeMethods.SW_RESTORE);
 
-            NativeMethods.SetWindowPos(hwnd, IntPtr.Zero, x, y, width, height,
-                NativeMethods.SWP_NOZORDER | NativeMethods.SWP_NOACTIVATE);
-            if (maximized) NativeMethods.ShowWindow(hwnd, NativeMethods.SW_SHOWMAXIMIZED);
+                // Ya en estado normal: su rectángulo real en pantalla.
+                NativeMethods.GetWindowRect(hwnd, out var rect);
+                var source = System.Windows.Forms.Screen.FromRectangle(Rectangle.FromLTRB(rect.Left, rect.Top, rect.Right, rect.Bottom)).WorkingArea;
+                width = Math.Min(rect.Right - rect.Left, targetWorkArea.Width);
+                height = Math.Min(rect.Bottom - rect.Top, targetWorkArea.Height);
+                x = targetWorkArea.Left + Math.Clamp(rect.Left - source.Left, 0, targetWorkArea.Width - width);
+                y = targetWorkArea.Top + Math.Clamp(rect.Top - source.Top, 0, targetWorkArea.Height - height);
+
+                NativeMethods.SetWindowPos(hwnd, IntPtr.Zero, x, y, width, height,
+                    NativeMethods.SWP_NOZORDER | NativeMethods.SWP_NOACTIVATE);
+                if (maximized) NativeMethods.ShowWindow(hwnd, NativeMethods.SW_SHOWMAXIMIZED);
+            }
 
             string state = maximized ? "maximizada" : wasMinimized ? "minimizada → restaurada" : "normal";
             string landed = System.Windows.Forms.Screen.FromHandle(hwnd).DeviceName;
             DiagLog.Write($"{tag} '{appName}' ventana en otro monitor ({current.DeviceName}) → movida a {targetName} " +
                           $"({x},{y},{width}x{height}) {state}, quedó en {landed}");
+        }
+
+        /// <summary>
+        /// Hace la ventana invisible (layered con alfa 0) hasta que se libera el resultado, y entonces le devuelve
+        /// su estilo original. No hace nada (null) si ya era layered, porque se podría romper cómo se dibuja, ni si
+        /// Windows no deja cambiarla (p. ej. apps como administrador): entonces se mueve visible, como antes.
+        /// </summary>
+        private static IDisposable HideWhileMoving(IntPtr hwnd)
+        {
+            IntPtr original = NativeMethods.GetWindowLongPtr(hwnd, NativeMethods.GWL_EXSTYLE);
+            if ((original.ToInt64() & NativeMethods.WS_EX_LAYERED) != 0) return null;
+
+            NativeMethods.SetWindowLongPtr(hwnd, NativeMethods.GWL_EXSTYLE, new IntPtr(original.ToInt64() | NativeMethods.WS_EX_LAYERED));
+            if (!NativeMethods.SetLayeredWindowAttributes(hwnd, 0, 0, NativeMethods.LWA_ALPHA))
+            {
+                NativeMethods.SetWindowLongPtr(hwnd, NativeMethods.GWL_EXSTYLE, original);
+                return null;
+            }
+            return new RestoreStyle(hwnd, original);
+        }
+
+        private sealed class RestoreStyle : IDisposable
+        {
+            private readonly IntPtr _hwnd;
+            private readonly IntPtr _style;
+
+            public RestoreStyle(IntPtr hwnd, IntPtr style) { _hwnd = hwnd; _style = style; }
+
+            public void Dispose()
+            {
+                NativeMethods.SetWindowLongPtr(_hwnd, NativeMethods.GWL_EXSTYLE, _style);
+                NativeMethods.RedrawWindow(_hwnd, IntPtr.Zero, IntPtr.Zero,
+                    NativeMethods.RDW_ERASE | NativeMethods.RDW_INVALIDATE | NativeMethods.RDW_FRAME | NativeMethods.RDW_ALLCHILDREN);
+            }
         }
 
         public void Dispose()
