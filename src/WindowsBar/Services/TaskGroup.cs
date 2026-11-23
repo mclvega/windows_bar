@@ -37,6 +37,11 @@ namespace WindowsBar.Services
         public bool IsPinned => Pin != null;
         public bool IsRunning => Windows.Count > 0;
         public bool HasMultipleWindows => Windows.Count > 1;
+
+        /// <summary>Insignia con el número de ventanas: solo en apps ancladas con varias ventanas.</summary>
+        public bool ShowWindowCount => IsPinned && Windows.Count > 1;
+        public string WindowCountText => Windows.Count > 9 ? "9+" : Windows.Count.ToString();
+
         public bool IsActive => Windows.Any(w => w.State == ApplicationWindow.WindowState.Active);
         public bool IsFlashing => !IsActive && Windows.Any(w => w.State == ApplicationWindow.WindowState.Flashing);
 
@@ -159,6 +164,8 @@ namespace WindowsBar.Services
         {
             OnPropertyChanged(nameof(IsRunning));
             OnPropertyChanged(nameof(HasMultipleWindows));
+            OnPropertyChanged(nameof(ShowWindowCount));
+            OnPropertyChanged(nameof(WindowCountText));
             OnPropertyChanged(nameof(IsActive));
             OnPropertyChanged(nameof(IsFlashing));
             OnPropertyChanged(nameof(Name));

@@ -28,6 +28,8 @@
     <SolidColorBrush x:Key="ProgressError" Color="#FFFF6B6B" />
     <SolidColorBrush x:Key="ProgressPaused" Color="#FFFCE100" />
     <SolidColorBrush x:Key="MicInUse" Color="#FF6CCB5F" />
+    <SolidColorBrush x:Key="WindowCountBackground" Color="#FF4CC2FF" />
+    <SolidColorBrush x:Key="WindowCountForeground" Color="#FF000000" />
 
     <!-- Botón base de la barra: fondo transparente, hover/pressed redondeados -->
     <Style x:Key="BarButton" TargetType="Button">

@@ -36,6 +36,17 @@
             <Image Source="{Binding Icon}" Width="{StaticResource TaskIconSize}" Height="{StaticResource TaskIconSize}"
                    RenderOptions.BitmapScalingMode="HighQuality" Margin="0,0,0,2" />
 
+            <!-- Número de ventanas abiertas (solo apps ancladas con varias) -->
+            <Border MinWidth="16" Height="16" CornerRadius="8" Padding="4,0"
+                    HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,3,5,0"
+                    Background="{StaticResource WindowCountBackground}"
+                    BorderBrush="{StaticResource BarBackground}" BorderThickness="1.5"
+                    Visibility="{Binding ShowWindowCount, Converter={StaticResource BoolToVisibility}}">
+                <TextBlock Text="{Binding WindowCountText}" FontFamily="{StaticResource TextFont}"
+                           FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource WindowCountForeground}"
+                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Border>
+
             <!-- Progreso (descargas, copias de archivos...) -->
             <ProgressBar Height="3" Margin="9,0,9,6" VerticalAlignment="Bottom" Minimum="0" Maximum="100"
                          Value="{Binding ProgressValue, Mode=OneWay}"
