@@ -45,6 +45,7 @@ namespace WindowsBar.Services
 
             _pins.Changed += OnExternalChange;
             _settings.Changed += OnSettingsChanged;
+            Interop.PrivateWindowDetector.Detected += OnExternalChange;
 
             Refresh();
         }
@@ -195,6 +196,16 @@ namespace WindowsBar.Services
                     g.Windows.Add(w);
                     changed = true;
                 }
+
+                // Las ventanas de incógnito siempre después de las normales (en cada grupo, por orden de apertura).
+                var ordered = g.Windows.OrderBy(w => Interop.PrivateWindowDetector.IsPrivate(w) ? 1 : 0).ToList();
+                for (int i = 0; i < ordered.Count; i++)
+                {
+                    int current = g.Windows.IndexOf(ordered[i]);
+                    if (current == i) continue;
+                    g.Windows.Move(current, i);
+                    changed = true;
+                }
                 if (changed) g.RaiseAll();
             }
 
@@ -242,6 +253,7 @@ namespace WindowsBar.Services
             _windows.Filter = null;
             _pins.Changed -= OnExternalChange;
             _settings.Changed -= OnSettingsChanged;
+            Interop.PrivateWindowDetector.Detected -= OnExternalChange;
             foreach (var w in _watched) w.PropertyChanged -= OnWindowPropertyChanged;
             _watched.Clear();
         }
