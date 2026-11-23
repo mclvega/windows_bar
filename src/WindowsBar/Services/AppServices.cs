@@ -19,6 +19,7 @@ namespace WindowsBar.Services
         public ClockService Clock { get; }
         public WindowManager WindowManager { get; }
         public LaunchPlacer LaunchPlacer { get; }
+        public NewWindowMaximizer WindowMaximizer { get; }
 
         public AppServices(ShellManager shellManager, SettingsService settings)
         {
@@ -36,10 +37,12 @@ namespace WindowsBar.Services
             Clock = new ClockService(dispatcher, settings);
             WindowManager = new WindowManager(this);
             LaunchPlacer = new LaunchPlacer(shellManager.Tasks, dispatcher);
+            WindowMaximizer = new NewWindowMaximizer(shellManager.Tasks, settings, dispatcher);
         }
 
         public void Dispose()
         {
+            WindowMaximizer.Dispose();
             LaunchPlacer.Dispose();
             WindowManager.Dispose();
             Tray.Dispose();

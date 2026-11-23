@@ -85,6 +85,14 @@ namespace WindowsBar.Interop
         public const int GWL_EXSTYLE = -20;
         public const long WS_EX_TOPMOST = 0x00000008;
         public const long WS_EX_TOOLWINDOW = 0x00000080;
+        public const int GWL_STYLE = -16;
+        public const long WS_MAXIMIZEBOX = 0x00010000;
+        public const long WS_THICKFRAME = 0x00040000;
+
+        [DllImport("user32.dll")]
+        public static extern short GetAsyncKeyState(int vKey);
+
+        public const int VK_LBUTTON = 0x01;
 
         /// <summary>Clase de ventana de los menús emergentes Win32 (TrackPopupMenu).</summary>
         public const string MenuWindowClass = "#32768";

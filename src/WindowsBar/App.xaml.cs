@@ -48,6 +48,8 @@ namespace WindowsBar
 
             Services = new AppServices(shellManager, settings);
             Services.WindowManager.Start();
+            // Tras abrir las barras ManagedShell ya conoce las ventanas existentes: esas no se maximizan.
+            Services.WindowMaximizer.Start();
 
             // Señal para "WindowsBar.exe --exit" (usada por publish.ps1 al actualizar).
             _exitSignal = new EventWaitHandle(false, EventResetMode.AutoReset, ExitSignalName);

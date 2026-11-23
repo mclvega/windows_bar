@@ -91,6 +91,16 @@
                             </StackPanel>
                         </DockPanel>
                     </Border>
+
+                    <Border Style="{StaticResource SettingCard}">
+                        <DockPanel>
+                            <CheckBox DockPanel.Dock="Right" Style="{StaticResource ToggleSwitch}" Tag="MaximizeNewWindows" />
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Style="{StaticResource SettingTitle}" Text="Abrir las ventanas nuevas maximizadas" />
+                                <TextBlock Style="{StaticResource SettingSubtitle}" Text="No afecta a diálogos, ventanas de tamaño fijo ni a pantalla completa." />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
                 </StackPanel>
 
                 <!-- ===== Elementos de la barra ===== -->

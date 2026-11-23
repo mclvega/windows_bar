@@ -41,6 +41,9 @@ namespace WindowsBar.Services
         /// <summary>true: apps centradas (Windows 11). false: alineadas a la izquierda.</summary>
         public bool CenterTasks { get; set; } = true;
 
+        /// <summary>true: las ventanas nuevas de las apps se abren maximizadas.</summary>
+        public bool MaximizeNewWindows { get; set; } = true;
+
         /// <summary>true: los botones de la barra se reordenan arrastrándolos.</summary>
         public bool DragToReorder { get; set; }
 
