@@ -33,6 +33,8 @@ namespace WindowsBar.Services
         private readonly SettingsService _settings;
         private readonly Dispatcher _dispatcher;
         private readonly HashSet<NotifyIcon> _watched = new();
+        private static readonly TimeSpan TitleLogInterval = TimeSpan.FromMinutes(1);
+        private readonly Dictionary<NotifyIcon, DateTime> _lastTitleLog = new();
         private List<(string Path, uint? Uid, Guid? IconGuid)> _promoted = new();
         private bool _refreshPending;
 
@@ -94,6 +96,16 @@ namespace WindowsBar.Services
             // La ruta/GUID pueden llegar después del primer aviso.
             if (e.PropertyName is nameof(NotifyIcon.Path) or nameof(NotifyIcon.GUID) or nameof(NotifyIcon.IsHidden))
                 ScheduleRefresh();
+
+            // Para comprobar que las actualizaciones de las apps (NIM_MODIFY) llegan a la barra.
+            // Una línea por icono y minuto: algunas apps (Administrador de tareas) cambian el tooltip cada segundo.
+            if (e.PropertyName == nameof(NotifyIcon.Title) && sender is NotifyIcon icon
+                && (!_lastTitleLog.TryGetValue(icon, out DateTime last) || DateTime.Now - last >= TitleLogInterval))
+            {
+                _lastTitleLog[icon] = DateTime.Now;
+                NativeMethods.GetWindowThreadProcessId(icon.HWnd, out uint pid);
+                DiagLog.Write($"[Bandeja] tooltip '{icon.Title}' (pid {pid})");
+            }
         }
 
         private void ScheduleRefresh()
@@ -117,6 +129,7 @@ namespace WindowsBar.Services
             {
                 gone.PropertyChanged -= OnIconPropertyChanged;
                 _watched.Remove(gone);
+                _lastTitleLog.Remove(gone);
             }
 
             var shown = all.Where(i => !i.IsHidden && !SystemIconGuids.Contains(i.GUID.ToString())).ToList();
