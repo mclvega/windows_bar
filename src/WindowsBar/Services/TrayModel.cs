@@ -34,7 +34,7 @@ namespace WindowsBar.Services
         private readonly Dispatcher _dispatcher;
         private readonly HashSet<NotifyIcon> _watched = new();
         private static readonly TimeSpan TitleLogInterval = TimeSpan.FromMinutes(1);
-        private readonly Dictionary<NotifyIcon, DateTime> _lastTitleLog = new();
+        private readonly Dictionary<(NotifyIcon, string), DateTime> _lastTitleLog = new();
         private List<(string Path, uint? Uid, Guid? IconGuid)> _promoted = new();
         private bool _refreshPending;
 
@@ -99,12 +99,14 @@ namespace WindowsBar.Services
 
             // Para comprobar que las actualizaciones de las apps (NIM_MODIFY) llegan a la barra.
             // Una línea por icono y minuto: algunas apps (Administrador de tareas) cambian el tooltip cada segundo.
-            if (e.PropertyName == nameof(NotifyIcon.Title) && sender is NotifyIcon icon
-                && (!_lastTitleLog.TryGetValue(icon, out DateTime last) || DateTime.Now - last >= TitleLogInterval))
+            if (e.PropertyName is nameof(NotifyIcon.Title) or nameof(NotifyIcon.Icon) && sender is NotifyIcon icon
+                && (!_lastTitleLog.TryGetValue((icon, e.PropertyName), out DateTime last) || DateTime.Now - last >= TitleLogInterval))
             {
-                _lastTitleLog[icon] = DateTime.Now;
+                _lastTitleLog[(icon, e.PropertyName)] = DateTime.Now;
                 NativeMethods.GetWindowThreadProcessId(icon.HWnd, out uint pid);
-                DiagLog.Write($"[Bandeja] tooltip '{icon.Title}' (pid {pid})");
+                DiagLog.Write(e.PropertyName == nameof(NotifyIcon.Title)
+                    ? $"[Bandeja] tooltip '{icon.Title}' (pid {pid})"
+                    : $"[Bandeja] imagen nueva {(icon.Icon == null ? "vacía" : $"{icon.Icon.Width}x{icon.Icon.Height}")} (pid {pid})");
             }
         }
 
@@ -129,7 +131,8 @@ namespace WindowsBar.Services
             {
                 gone.PropertyChanged -= OnIconPropertyChanged;
                 _watched.Remove(gone);
-                _lastTitleLog.Remove(gone);
+                _lastTitleLog.Remove((gone, nameof(NotifyIcon.Title)));
+                _lastTitleLog.Remove((gone, nameof(NotifyIcon.Icon)));
             }
 
             var shown = all.Where(i => !i.IsHidden && !SystemIconGuids.Contains(i.GUID.ToString())).ToList();
