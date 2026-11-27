@@ -34,7 +34,12 @@ namespace WindowsBar.Services
         public static void Widgets(TaskbarWindow host) => HotkeyOnMonitor(host, VK_LWIN, 'W');
         public static void QuickSettings(TaskbarWindow host) => HotkeyOnMonitor(host, VK_LWIN, 'A');
         public static void NotificationCenter(TaskbarWindow host) => HotkeyOnMonitor(host, VK_LWIN, 'N');
-        public static void StartContextMenu(TaskbarWindow host) => HotkeyOnMonitor(host, VK_LWIN, 'X');
+        public static void StartContextMenu(TaskbarWindow host)
+        {
+            // Lo que se abra desde el menú lo lanza Explorer en el monitor principal: se lleva a esta barra.
+            App.Services.LaunchPlacer.ExpectFromShellMenu(host, "Menú Win+X");
+            HotkeyOnMonitor(host, VK_LWIN, 'X');
+        }
         public static void SwitchInputLanguage(TaskbarWindow host) => HotkeyOnMonitor(host, VK_LWIN, VK_SPACE);
         public static void ShowDesktop() => SendCombo(VK_LWIN, 'D');
 

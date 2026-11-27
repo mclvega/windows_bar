@@ -38,6 +38,9 @@ namespace WindowsBar.Services
             public string TargetName { get; init; }
             public HashSet<IntPtr> Seen { get; init; }
             public DateTime Expires { get; init; }
+            /// <summary>Solo coloca la primera ventana nueva que aparezca (menús del shell: no se sabe qué app abrirán).</summary>
+            public bool SingleShot { get; init; }
+            public bool Done { get; set; }
         }
 
         public LaunchPlacer(Tasks tasks, Dispatcher dispatcher)
@@ -51,6 +54,9 @@ namespace WindowsBar.Services
         public void Expect(TaskGroup group, TaskbarWindow host)
         {
             if (group == null || host == null) return;
+
+            // Se abre una app concreta desde la barra: deja de esperar lo que pudiera abrir un menú del shell.
+            _pending.RemoveAll(e => e.SingleShot);
 
             // Vista propia y sin filtrar: ve la ventana aunque la barra pulsada solo muestre las de su monitor.
             // Se crea al primer uso, cuando la lista de ventanas de ManagedShell ya está inicializada.
@@ -76,11 +82,36 @@ namespace WindowsBar.Services
         }
 
         /// <summary>
+        /// Se abre un menú del shell (Win+X) desde la barra <paramref name="host"/>: lo que se abra desde él lo lanza
+        /// Explorer en el monitor principal, así que la primera ventana nueva que aparezca se lleva a esta barra.
+        /// </summary>
+        public void ExpectFromShellMenu(TaskbarWindow host, string name)
+        {
+            if (host == null) return;
+
+            _windows ??= _tasks.CreateGroupedWindowsCollection();
+            _pending.RemoveAll(e => e.SingleShot);
+
+            _pending.Add(new Expectation
+            {
+                Name = name,
+                Matches = _ => true,
+                TargetBounds = host.Screen.Bounds,
+                TargetWorkArea = host.Screen.WorkingArea,
+                TargetName = host.Screen.DeviceName,
+                Seen = new HashSet<IntPtr>(CurrentWindows().Select(w => w.Handle)),
+                Expires = DateTime.Now.AddSeconds(ExpectSeconds),
+                SingleShot = true
+            });
+            _poll.Start();
+        }
+
+        /// <summary>
         /// true si la ventana es de una app recién abierta desde una barra y aún no se ha llevado a su monitor
         /// (el maximizador espera a que esté allí para maximizarla una sola vez, ya en la pantalla de destino).
         /// </summary>
         public bool IsPlacing(ApplicationWindow w) =>
-            _pending.Any(e => DateTime.Now <= e.Expires && !e.Seen.Contains(w.Handle) && SafeMatch(e.Matches)(w));
+            _pending.Any(e => !e.Done && DateTime.Now <= e.Expires && !e.Seen.Contains(w.Handle) && SafeMatch(e.Matches)(w));
 
         private IEnumerable<ApplicationWindow> CurrentWindows() =>
             _windows?.Cast<object>().OfType<ApplicationWindow>().ToList() ?? new List<ApplicationWindow>();
@@ -93,7 +124,7 @@ namespace WindowsBar.Services
 
         private void Poll()
         {
-            _pending.RemoveAll(e => DateTime.Now > e.Expires);
+            _pending.RemoveAll(e => e.Done || DateTime.Now > e.Expires);
             if (_pending.Count == 0)
             {
                 _poll.Stop();
@@ -105,6 +136,7 @@ namespace WindowsBar.Services
             {
                 foreach (var w in windows)
                 {
+                    if (expectation.Done) break;
                     IntPtr hwnd = w.Handle;
                     if (expectation.Seen.Contains(hwnd)) continue;
                     // Todavía sin mostrar: se vuelve a mirar en la siguiente pasada.
@@ -112,6 +144,7 @@ namespace WindowsBar.Services
                     if (!SafeMatch(expectation.Matches)(w)) continue;
 
                     expectation.Seen.Add(hwnd);
+                    if (expectation.SingleShot) expectation.Done = true;
                     MoveToTarget(hwnd, expectation);
 
                     // Algunas apps se recolocan al terminar de cargar: se comprueba otra vez al cabo de un momento.
