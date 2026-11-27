@@ -33,6 +33,10 @@ namespace WindowsBar.Services
 
         private const int PollMs = 50;
         private const int MaxPolls = 30; // 1,5 s
+        private const int MaxMovesPerWindow = 4;
+
+        /// <summary>Seguimiento en curso por acción (Win+X, Win+A...).</summary>
+        private static readonly Dictionary<string, DispatcherTimer> ActiveTimers = new();
 
         /// <summary>Instantánea (ventana → rectángulo) de las ventanas visibles, tomada ANTES de abrir el panel.</summary>
         public static Dictionary<IntPtr, NativeMethods.RECT> Snapshot() =>
@@ -45,27 +49,43 @@ namespace WindowsBar.Services
             var target = host.Screen.Bounds;
             int polls = 0;
             var handled = new HashSet<IntPtr>();
+            var movedCount = new Dictionary<IntPtr, int>(); // ventanas que movimos → veces
+
+            // Un clic nuevo (p. ej. varios clics derechos seguidos en Inicio) sustituye al seguimiento anterior:
+            // dos seguimientos a la vez movían el mismo menú uno detrás de otro y lo hacían rebotar.
+            if (ActiveTimers.TryGetValue(action, out var previous)) previous.Stop();
 
             var timer = new DispatcherTimer(DispatcherPriority.Normal, host.Dispatcher)
             {
                 Interval = TimeSpan.FromMilliseconds(PollMs)
             };
+            ActiveTimers[action] = timer;
             timer.Tick += (_, _) =>
             {
                 polls++;
                 foreach (IntPtr hwnd in VisibleWindows())
                 {
                     NativeMethods.GetWindowRect(hwnd, out var rect);
+                    // Monitor según el rectángulo real (MonitorFromWindow a veces da el monitor anterior justo tras moverla).
+                    var center = new System.Drawing.Point((rect.Left + rect.Right) / 2, (rect.Top + rect.Bottom) / 2);
+                    bool wrongMonitor = !target.Contains(center);
 
                     // Candidata: ventana nueva, o ya existente que cambió de posición/tamaño (paneles que se deslizan).
                     bool isNew = !before.TryGetValue(hwnd, out var old);
                     bool changed = !isNew && (old.Left != rect.Left || old.Top != rect.Top || old.Right != rect.Right || old.Bottom != rect.Bottom);
-                    if ((!isNew && !changed) || !handled.Add(hwnd)) continue;
+
+                    if (movedCount.TryGetValue(hwnd, out int times))
+                    {
+                        // Ya la movimos: Windows a veces la devuelve al monitor principal (p. ej. el menú Win+X al
+                        // recolocarse por el cambio de escala). Se vuelve a mover, con un límite para no pelear sin fin.
+                        if (!wrongMonitor || times >= MaxMovesPerWindow) continue;
+                        DiagLog.Write($"[{action}]   volvió al otro monitor ({rect.Left},{rect.Top}) → se mueve de nuevo");
+                    }
+                    else if ((!isNew && !changed) || !handled.Add(hwnd)) continue;
 
                     string process = ProcessName(hwnd);
                     if (process == "WindowsBar") continue; // nuestras propias barras (p. ej. al auto-ocultarse)
-                    var source = System.Windows.Forms.Screen.FromHandle(hwnd).Bounds;
-                    bool wrongMonitor = !source.Equals(target);
+                    var source = System.Windows.Forms.Screen.FromPoint(center).Bounds;
 
                     DiagLog.Write($"[{action}] {(isNew ? "nueva" : "movida")} {process}/{ClassName(hwnd)} '{Title(hwnd)}' " +
                                   $"rect=({rect.Left},{rect.Top},{rect.Right},{rect.Bottom}) monitor={(wrongMonitor ? "OTRO" : "correcto")}");
@@ -94,6 +114,7 @@ namespace WindowsBar.Services
 
                     bool moved = NativeMethods.SetWindowPos(hwnd, IntPtr.Zero, x, y, 0, 0,
                         NativeMethods.SWP_NOSIZE | NativeMethods.SWP_NOZORDER | NativeMethods.SWP_NOACTIVATE);
+                    movedCount[hwnd] = movedCount.GetValueOrDefault(hwnd) + 1;
                     NativeMethods.GetWindowRect(hwnd, out var after);
                     DiagLog.Write($"[{action}]   movida a ({x},{y}){(fits ? "" : " anclada abajo (más alta que el monitor)")} " +
                                   $"resultado={moved} rect final=({after.Left},{after.Top},{after.Right},{after.Bottom})");
@@ -102,6 +123,7 @@ namespace WindowsBar.Services
                 if (polls >= MaxPolls)
                 {
                     timer.Stop();
+                    if (ActiveTimers.TryGetValue(action, out var current) && current == timer) ActiveTimers.Remove(action);
                     if (handled.Count == 0) DiagLog.Write($"[{action}] ninguna ventana visible nueva ni movida en 1,5 s");
                 }
             };
