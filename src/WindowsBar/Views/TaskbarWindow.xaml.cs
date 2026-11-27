@@ -1,5 +1,8 @@
 using System;
+using System.Collections.Generic;
+using System.Reflection;
 using System.Windows;
+using System.Windows.Interop;
 using System.Windows.Threading;
 using ManagedShell.AppBar;
 using ManagedShell.Common.Helpers;
@@ -42,6 +45,7 @@ namespace WindowsBar.Views
             if (mode == AppBarMode.AutoHide)
             {
                 _edgeWatcher = new DispatcherTimer(TimeSpan.FromMilliseconds(100), DispatcherPriority.Input, EdgeWatcher_Tick, Dispatcher);
+                _hideWatchdog = new DispatcherTimer(TimeSpan.FromMilliseconds(500), DispatcherPriority.Background, HideWatchdog_Tick, Dispatcher);
             }
 
             if (Screen.Primary && services.ShellManager.NotificationArea != null)
@@ -162,7 +166,152 @@ namespace WindowsBar.Views
         {
             base.OnAutoHideAnimationComplete(isHiding);
             _isAutoHidden = isHiding;
+            if (isHiding) ResetBlockedState();
         }
+
+        #region Vigilante: la barra no debe quedarse visible sin motivo
+        // Estado privado de ManagedShell 0.0.374 (AppBarWindow). Solo cambia con eventos (MouseLeave,
+        // ContextMenuClosing, DragLeave...): si uno se pierde, la barra se queda visible para siempre.
+        private static readonly FieldInfo MouseWithinField = typeof(AppBarWindow).GetField("_isMouseWithin", BindingFlags.Instance | BindingFlags.NonPublic);
+        private static readonly FieldInfo ContextMenuOpenField = typeof(AppBarWindow).GetField("_isContextMenuOpen", BindingFlags.Instance | BindingFlags.NonPublic);
+        private static readonly FieldInfo DragWithinField = typeof(AppBarWindow).GetField("_isDragWithin", BindingFlags.Instance | BindingFlags.NonPublic);
+        private static readonly FieldInfo PeekTimerField = typeof(AppBarWindow).GetField("_peekAutoHideTimer", BindingFlags.Instance | BindingFlags.NonPublic);
+        private static bool _fieldsMissingLogged;
+
+        /// <summary>Tras este tiempo bloqueada sin motivo se muestra el marco.</summary>
+        private static readonly TimeSpan BlockedFrameDelay = TimeSpan.FromSeconds(1);
+        /// <summary>Tras este tiempo se liberan los bloqueos obsoletos y la barra se oculta.</summary>
+        private static readonly TimeSpan BlockedReleaseDelay = TimeSpan.FromSeconds(4);
+
+        private readonly DispatcherTimer _hideWatchdog;
+        private DateTime? _blockedSince;
+        private bool _blockedFrameShown;
+
+        private void HideWatchdog_Tick(object sender, EventArgs e)
+        {
+            if (Handle == IntPtr.Zero || _isAutoHidden || AppBarMode != AppBarMode.AutoHide || AllowAutoHide)
+            {
+                ResetBlockedState();
+                return;
+            }
+
+            if (MouseWithinField == null || ContextMenuOpenField == null || DragWithinField == null || PeekTimerField == null)
+            {
+                if (!_fieldsMissingLogged)
+                {
+                    _fieldsMissingLogged = true;
+                    DiagLog.Write("[Auto-ocultar] vigilante desactivado: la versión de ManagedShell no tiene los campos esperados");
+                }
+                return;
+            }
+
+            // Bloqueos justificados: ratón sobre la barra o un panel suyo, botón pulsado o "peek" en curso.
+            bool peeking = PeekTimerField.GetValue(this) is DispatcherTimer peek && peek.IsEnabled;
+            bool buttonDown = System.Windows.Forms.Control.MouseButtons != System.Windows.Forms.MouseButtons.None;
+            var popups = VisibleOwnPopups();
+            var cursor = System.Windows.Forms.Cursor.Position;
+            bool cursorOver = IsCursorIn(Handle, cursor) || popups.Exists(h => IsCursorIn(h, cursor));
+            if (peeking || buttonDown || cursorOver)
+            {
+                // El marco (si está) se mantiene para poder leer el motivo en su tooltip; solo se reinicia el plazo.
+                _blockedSince = null;
+                return;
+            }
+
+            _blockedSince ??= DateTime.Now;
+            var blockedFor = DateTime.Now - _blockedSince.Value;
+            string reason = BlockedReason(popups.Count);
+
+            if (blockedFor >= BlockedFrameDelay && !_blockedFrameShown)
+            {
+                _blockedFrameShown = true;
+                RootBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("AutoHideBlocked");
+                RootBorder.BorderThickness = new Thickness(2);
+                RootBorder.ToolTip = $"No se oculta: {reason}";
+                DiagLog.Write($"[Auto-ocultar] {Screen.DeviceName}: la barra no se oculta → {reason}");
+            }
+            else if (_blockedFrameShown)
+            {
+                RootBorder.ToolTip = $"No se oculta: {reason}";
+            }
+
+            if (blockedFor >= BlockedReleaseDelay) ReleaseStaleBlocks(popups.Count);
+        }
+
+        /// <summary>Describe qué impide ocultar la barra.</summary>
+        private string BlockedReason(int visiblePopups)
+        {
+            var reasons = new List<string>();
+            if ((bool)MouseWithinField.GetValue(this)) reasons.Add("ratón dentro (estado obsoleto)");
+            if ((bool)ContextMenuOpenField.GetValue(this)) reasons.Add("menú contextual abierto");
+            if ((bool)DragWithinField.GetValue(this)) reasons.Add("arrastre en curso");
+            if (_trayMenuTimer != null) reasons.Add($"menú de bandeja (pid {_trayMenuProcessId})");
+            else if (_openPopups > 0) reasons.Add($"{_openPopups} panel(es) abierto(s), {visiblePopups} visible(s)");
+            return reasons.Count > 0 ? string.Join(", ", reasons) : "motivo desconocido";
+        }
+
+        /// <summary>Libera los bloqueos que ya no corresponden a nada real y deja que la barra se oculte.</summary>
+        private void ReleaseStaleBlocks(int visiblePopups)
+        {
+            var released = new List<string>();
+
+            if ((bool)MouseWithinField.GetValue(this))
+            {
+                MouseWithinField.SetValue(this, false);
+                released.Add("ratón dentro");
+            }
+            if ((bool)ContextMenuOpenField.GetValue(this) && visiblePopups == 0)
+            {
+                ContextMenuOpenField.SetValue(this, false);
+                released.Add("menú contextual");
+            }
+            if ((bool)DragWithinField.GetValue(this))
+            {
+                DragWithinField.SetValue(this, false);
+                released.Add("arrastre");
+            }
+            if (_openPopups > 0 && visiblePopups == 0 && _trayMenuTimer == null)
+            {
+                released.Add($"{_openPopups} panel(es)");
+                _openPopups = 0;
+            }
+
+            if (released.Count == 0) return;
+
+            DiagLog.Write($"[Auto-ocultar] {Screen.DeviceName}: liberado {string.Join(", ", released)} → la barra se oculta");
+            OnPropertyChanged(nameof(AllowAutoHide));
+        }
+
+        private void ResetBlockedState()
+        {
+            _blockedSince = null;
+            if (!_blockedFrameShown) return;
+
+            _blockedFrameShown = false;
+            RootBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("BarBorder");
+            RootBorder.BorderThickness = new Thickness(0, 1, 0, 0);
+            RootBorder.ToolTip = null;
+        }
+
+        /// <summary>Ventanas visibles de este proceso que no son barras (vistas previas, menús, panel ^...).</summary>
+        private static List<IntPtr> VisibleOwnPopups()
+        {
+            var result = new List<IntPtr>();
+            foreach (PresentationSource source in PresentationSource.CurrentSources)
+            {
+                if (source is not HwndSource hwndSource || hwndSource.IsDisposed) continue;
+                if (hwndSource.RootVisual is Window) continue; // barras y ventana de configuración
+                if (Interop.NativeMethods.IsWindowVisible(hwndSource.Handle)) result.Add(hwndSource.Handle);
+            }
+            return result;
+        }
+
+        private static bool IsCursorIn(IntPtr hwnd, System.Drawing.Point cursor)
+        {
+            if (!Interop.NativeMethods.GetWindowRect(hwnd, out var r)) return false;
+            return cursor.X >= r.Left && cursor.X < r.Right && cursor.Y >= r.Top && cursor.Y < r.Bottom;
+        }
+        #endregion
 
         /// <summary>
         /// Una ventana MAXIMIZADA no es pantalla completa: sin espacio reservado (ocultar automáticamente),
@@ -264,6 +413,7 @@ namespace WindowsBar.Views
 
             TaskGroups.Dispose();
             _edgeWatcher?.Stop();
+            _hideWatchdog?.Stop();
             _trayMenuTimer?.Stop();
             _trayMenuTimer = null;
             _services.Settings.Changed -= Settings_Changed;

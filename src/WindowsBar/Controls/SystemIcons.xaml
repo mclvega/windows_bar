@@ -32,11 +32,20 @@
             <StackPanel Orientation="Horizontal">
                 <TextBlock Style="{StaticResource Glyph}" Text="{Binding Network.Glyph}" Margin="0,0,10,0"
                            ToolTip="{Binding Network.ToolTip}" Background="Transparent" />
-                <TextBlock Style="{StaticResource Glyph}" Text="{Binding Audio.Glyph}"
-                           ToolTip="{Binding Audio.ToolTip}" Background="Transparent" />
-                <TextBlock Style="{StaticResource Glyph}" Text="{Binding Power.Glyph}" Margin="10,0,0,0"
-                           ToolTip="{Binding Power.ToolTip}" Background="Transparent"
-                           Visibility="{Binding Power.HasBattery, Converter={StaticResource BoolToVisibility}}" />
+                <StackPanel Orientation="Horizontal" ToolTip="{Binding Audio.ToolTip}" Background="Transparent">
+                    <TextBlock Style="{StaticResource Glyph}" Text="{Binding Audio.Glyph}" />
+                    <TextBlock Style="{StaticResource BarText}" Text="{Binding Audio.Volume, StringFormat={}{0}%}"
+                               Margin="4,0,0,0" VerticalAlignment="Center"
+                               Visibility="{Binding Audio.HasDevice, Converter={StaticResource BoolToVisibility}}" />
+                </StackPanel>
+                <!-- Batería (solo en equipos con batería): icono y porcentaje -->
+                <StackPanel Orientation="Horizontal" Margin="10,0,0,0"
+                            ToolTip="{Binding Power.ToolTip}" Background="Transparent"
+                            Visibility="{Binding Power.HasBattery, Converter={StaticResource BoolToVisibility}}">
+                    <TextBlock Style="{StaticResource Glyph}" Text="{Binding Power.Glyph}" />
+                    <TextBlock Style="{StaticResource BarText}" Text="{Binding Power.Percent, StringFormat={}{0}%}"
+                               Margin="4,0,0,0" VerticalAlignment="Center" />
+                </StackPanel>
             </StackPanel>
         </Button>
     </StackPanel>
