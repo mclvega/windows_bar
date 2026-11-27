@@ -34,12 +34,6 @@ namespace WindowsBar.Services
         public static void Widgets(TaskbarWindow host) => HotkeyOnMonitor(host, VK_LWIN, 'W');
         public static void QuickSettings(TaskbarWindow host) => HotkeyOnMonitor(host, VK_LWIN, 'A');
         public static void NotificationCenter(TaskbarWindow host) => HotkeyOnMonitor(host, VK_LWIN, 'N');
-        public static void StartContextMenu(TaskbarWindow host)
-        {
-            // Lo que se abra desde el menú lo lanza Explorer en el monitor principal: se lleva a esta barra.
-            App.Services.LaunchPlacer.ExpectFromShellMenu(host, "Menú Win+X");
-            HotkeyOnMonitor(host, VK_LWIN, 'X');
-        }
         public static void SwitchInputLanguage(TaskbarWindow host) => HotkeyOnMonitor(host, VK_LWIN, VK_SPACE);
         public static void ShowDesktop() => SendCombo(VK_LWIN, 'D');
 
@@ -56,7 +50,18 @@ namespace WindowsBar.Services
         /// Abre una app pidiendo a Windows que la muestre en el monitor de la barra pulsada (como la barra nativa).
         /// Las apps que restauran su posición guardada lo ignoran: de esas se encarga <see cref="LaunchPlacer"/>.
         /// </summary>
-        public static void Launch(string path, string args, TaskbarWindow host)
+        /// <summary>
+        /// Abre algo desde un menú de la barra (p. ej. el de clic derecho en Inicio) en el monitor de esa barra.
+        /// Si la app ignora el monitor pedido o ya estaba abierta en otro, <see cref="LaunchPlacer"/> la trae.
+        /// </summary>
+        public static void LaunchOnMonitor(string target, string args, TaskbarWindow host, string name, bool asAdmin = false)
+        {
+            DiagLog.Write($"[Abrir] '{name}' → {target} {args}{(asAdmin ? " (administrador)" : "")} (monitor {host?.Screen.DeviceName})");
+            App.Services.LaunchPlacer.ExpectFromShellMenu(host, name);
+            Launch(target, args, host, asAdmin ? "runas" : null);
+        }
+
+        public static void Launch(string path, string args, TaskbarWindow host, string verb = null)
         {
             // Las apps empaquetadas ("shell:AppsFolder\AUMID") se abren a través de Explorer.
             bool viaExplorer = path.StartsWith("shell:", StringComparison.OrdinalIgnoreCase);
@@ -67,6 +72,7 @@ namespace WindowsBar.Services
                 {
                     cbSize = Marshal.SizeOf<NativeMethods.SHELLEXECUTEINFO>(),
                     fMask = NativeMethods.SEE_MASK_FLAG_NO_UI | (host != null ? NativeMethods.SEE_MASK_HMONITOR : 0),
+                    lpVerb = verb,
                     lpFile = viaExplorer ? "explorer.exe" : path,
                     lpParameters = viaExplorer ? path : args,
                     nShow = NativeMethods.SW_SHOWNORMAL,

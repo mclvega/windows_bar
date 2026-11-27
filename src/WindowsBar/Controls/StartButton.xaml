@@ -1,8 +1,36 @@
 <UserControl x:Class="WindowsBar.Controls.StartButton"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <Button Style="{StaticResource SquareBarButton}" ToolTip="Inicio"
-            Click="Button_Click" MouseRightButtonUp="Button_MouseRightButtonUp">
+    <Button Style="{StaticResource SquareBarButton}" ToolTip="Inicio" Click="Button_Click">
+        <!-- Clic derecho: menú de enlace rápido propio (el Win+X de Windows siempre vuelve al monitor principal) -->
+        <Button.ContextMenu>
+            <ContextMenu Placement="Top">
+                <MenuItem Header="Apl_icaciones instaladas" Tag="ms-settings:appsfeatures" Click="Launch_Click" />
+                <MenuItem Header="_Opciones de energía" Tag="ms-settings:powersleep" Click="Launch_Click" />
+                <MenuItem Header="_Visor de eventos" Tag="eventvwr.msc" Click="Launch_Click" />
+                <MenuItem Header="_Sistema" Tag="ms-settings:about" Click="Launch_Click" />
+                <MenuItem Header="Ad_ministrador de dispositivos" Tag="devmgmt.msc" Click="Launch_Click" />
+                <MenuItem Header="Conexiones de _red" Tag="ms-settings:network" Click="Launch_Click" />
+                <MenuItem Header="Administraci_ón de discos" Tag="diskmgmt.msc" Click="Launch_Click" />
+                <MenuItem Header="_Administración de equipos" Tag="compmgmt.msc" Click="Launch_Click" />
+                <MenuItem Header="_Terminal" Tag="wt.exe" Click="Launch_Click" />
+                <MenuItem Header="Terminal (_Administrador)" Tag="wt.exe" Click="LaunchAdmin_Click" />
+                <Separator />
+                <MenuItem Header="Administrador de _tareas" Tag="taskmgr.exe" Click="Launch_Click" />
+                <MenuItem Header="Co_nfiguración" Tag="ms-settings:" Click="Launch_Click" />
+                <MenuItem Header="_Explorador de archivos" Tag="explorer.exe" Click="Launch_Click" />
+                <MenuItem Header="Bu_scar" Click="Search_Click" />
+                <MenuItem Header="E_jecutar" Click="Run_Click" />
+                <Separator />
+                <MenuItem Header="Apa_gar o cerrar sesión">
+                    <MenuItem Header="Cerrar _sesión" Click="SignOut_Click" />
+                    <MenuItem Header="Sus_pender" Click="Sleep_Click" />
+                    <MenuItem Header="_Apagar" Click="Shutdown_Click" />
+                    <MenuItem Header="_Reiniciar" Click="Restart_Click" />
+                </MenuItem>
+                <MenuItem Header="_Escritorio" Click="Desktop_Click" />
+            </ContextMenu>
+        </Button.ContextMenu>
         <!-- Cuatro paneles, como el logotipo del botón Inicio -->
         <Grid Width="22" Height="22">
             <Grid.Resources>
