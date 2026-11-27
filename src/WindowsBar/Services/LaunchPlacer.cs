@@ -41,6 +41,8 @@ namespace WindowsBar.Services
             /// <summary>Solo coloca la primera ventana nueva que aparezca (menús del shell: no se sabe qué app abrirán).</summary>
             public bool SingleShot { get; init; }
             public bool Done { get; set; }
+            /// <summary>Ventana en primer plano al abrir el menú: si vuelve a ella (Esc), no se mueve.</summary>
+            public IntPtr ForegroundAtStart { get; init; }
         }
 
         public LaunchPlacer(Tasks tasks, Dispatcher dispatcher)
@@ -101,7 +103,8 @@ namespace WindowsBar.Services
                 TargetName = host.Screen.DeviceName,
                 Seen = new HashSet<IntPtr>(CurrentWindows().Select(w => w.Handle)),
                 Expires = DateTime.Now.AddSeconds(ExpectSeconds),
-                SingleShot = true
+                SingleShot = true,
+                ForegroundAtStart = NativeMethods.GetForegroundWindow()
             });
             _poll.Start();
         }
@@ -124,6 +127,15 @@ namespace WindowsBar.Services
 
         private void Poll()
         {
+            var windows = CurrentWindows();
+
+            foreach (var expired in _pending.Where(e => e.SingleShot && !e.Done && DateTime.Now > e.Expires))
+            {
+                IntPtr fg = NativeMethods.GetForegroundWindow();
+                string fgTitle = windows.FirstOrDefault(w => w.Handle == fg)?.Title ?? "(no está en la lista de tareas)";
+                DiagLog.Write($"[Abrir] '{expired.Name}' caducó sin ventana que mover (primer plano: 0x{fg.ToInt64():X} '{fgTitle}')");
+            }
+
             _pending.RemoveAll(e => e.Done || DateTime.Now > e.Expires);
             if (_pending.Count == 0)
             {
@@ -131,7 +143,6 @@ namespace WindowsBar.Services
                 return;
             }
 
-            var windows = CurrentWindows();
             foreach (var expectation in _pending)
             {
                 foreach (var w in windows)
@@ -145,14 +156,38 @@ namespace WindowsBar.Services
 
                     expectation.Seen.Add(hwnd);
                     if (expectation.SingleShot) expectation.Done = true;
-                    MoveToTarget(hwnd, expectation);
-
-                    // Algunas apps se recolocan al terminar de cargar: se comprueba otra vez al cabo de un momento.
-                    var recheck = new DispatcherTimer(TimeSpan.FromMilliseconds(RecheckMs), DispatcherPriority.Background,
-                        (s, _) => { ((DispatcherTimer)s).Stop(); MoveToTarget(hwnd, expectation, log: false); }, _poll.Dispatcher);
-                    recheck.Start();
+                    Place(hwnd, expectation, "[Abrir]");
                 }
+
+                if (expectation.SingleShot && !expectation.Done) PlaceActivatedWindow(expectation, windows);
             }
+        }
+
+        /// <summary>
+        /// Menú del shell: si la opción elegida es una app que ya estaba abierta, Windows solo activa su ventana
+        /// (en el monitor donde esté). Esa ventana, ya existente, también se lleva al monitor de la barra.
+        /// </summary>
+        private void PlaceActivatedWindow(Expectation expectation, IEnumerable<ApplicationWindow> windows)
+        {
+            IntPtr fg = NativeMethods.GetForegroundWindow();
+            if (fg == IntPtr.Zero || fg == expectation.ForegroundAtStart) return;
+            // Solo ventanas de la lista de tareas: nunca el propio menú, nuestras barras ni paneles del shell.
+            if (!windows.Any(w => w.Handle == fg)) return;
+            // Se eligió una opción del menú (ratón en el monitor de la barra), no se hizo clic en otra ventana.
+            if (!expectation.TargetBounds.Contains(System.Windows.Forms.Cursor.Position)) return;
+
+            expectation.Done = true;
+            Place(fg, expectation, "[Traer]");
+        }
+
+        private void Place(IntPtr hwnd, Expectation expectation, string tag)
+        {
+            MoveToScreen(hwnd, expectation.TargetBounds, expectation.TargetWorkArea, expectation.TargetName, expectation.Name, tag, true);
+
+            // Algunas apps se recolocan al terminar de cargar: se comprueba otra vez al cabo de un momento.
+            var recheck = new DispatcherTimer(TimeSpan.FromMilliseconds(RecheckMs), DispatcherPriority.Background,
+                (s, _) => { ((DispatcherTimer)s).Stop(); MoveToTarget(hwnd, expectation, log: false); }, _poll.Dispatcher);
+            recheck.Start();
         }
 
         private static void MoveToTarget(IntPtr hwnd, Expectation e, bool log = true) =>
