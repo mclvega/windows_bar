@@ -175,6 +175,9 @@ namespace WindowsBar.Services
             if (!windows.Any(w => w.Handle == fg)) return;
             // Se eligió una opción del menú (ratón en el monitor de la barra), no se hizo clic en otra ventana.
             if (!expectation.TargetBounds.Contains(System.Windows.Forms.Cursor.Position)) return;
+            // Ya en el monitor de la barra (p. ej. la ventana que recupera el foco mientras el menú está abierto):
+            // no es la opción elegida; se sigue esperando.
+            if (SourceScreen(fg, out _)?.Bounds.Equals(expectation.TargetBounds) != false) return;
 
             expectation.Done = true;
             Place(fg, expectation, "[Traer]");
